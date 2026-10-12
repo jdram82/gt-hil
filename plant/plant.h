@@ -62,6 +62,7 @@ typedef struct {
     /* sensor noise (uniform, +/- amplitude) */
     double noise_speed_rpm;
     double noise_temp_c;
+    double tc_offset_c[4];   /* fixed healthy spread between the 4 exhaust TCs */
 
     /* derived in plant_init() */
     double omega_rated;      /* rad/s                                       */
@@ -78,7 +79,24 @@ typedef struct {
     int    ignition_on;
     int    breaker_closed;
     double load_elec_mw;     /* electrical load demand at rated speed       */
+    /* process permissives reported to the controller (1 = healthy) */
+    int    perm_estop_ok;
+    int    perm_lube_ok;
+    int    perm_fuel_ok;
+    int    perm_starter_ok;
 } PlantInputs;
+
+/* ---------------- Sensor fault injection ---------------- */
+typedef enum { SF_NONE = 0, SF_DRIFT, SF_STUCK, SF_NOISY, SF_OFFSET } SensorFaultMode;
+
+typedef struct {
+    int    mode;             /* SensorFaultMode                              */
+    double a;                /* drift rate /s, noise amplitude, or offset    */
+    double b;                /* drift limit (max |drift|), 0 = unlimited     */
+    double t_on;             /* plant time the fault was injected            */
+    int    captured;         /* stuck: value has been latched                */
+    double held;             /* stuck: the frozen value                      */
+} SensorFault;
 
 /* ---------------- State ---------------- */
 typedef struct {
@@ -117,13 +135,14 @@ typedef struct {
 
 /* ---------------- Measurements (what a sensor would report) ---------------- */
 typedef struct {
-    double speed_rpm;
-    double exh_temp_c;
+    double speed_rpm[3];     /* three independent speed channels             */
+    double tc_c[4];          /* four exhaust thermocouples                   */
     double press_bar_g;
     double power_mw;
     double fuel_kg_s;
     int    flame;
     int    breaker_closed;
+    int    estop_ok, lube_ok, fuel_ok, starter_ok;   /* permissive inputs    */
 } PlantMeasurements;
 
 typedef struct {
@@ -133,6 +152,8 @@ typedef struct {
     PlantOutputs out;
     unsigned long long rng;
     int noise_enabled;
+    SensorFault speed_fault[3];
+    SensorFault tc_fault[4];
 } Plant;
 
 void plant_params_default(PlantParams *p);
@@ -140,6 +161,11 @@ void plant_init(Plant *pl, const PlantParams *p);
 void plant_step(Plant *pl, double dt);
 void plant_measure(Plant *pl, PlantMeasurements *m);
 void plant_seed(Plant *pl, unsigned long long seed, int noise_enabled);
+
+/* Fault injection: acts on the measurement path only, never on the physics. */
+void plant_inject_speed_fault(Plant *pl, int ch, int mode, double a, double b);
+void plant_inject_tc_fault(Plant *pl, int tc, int mode, double a, double b);
+void plant_clear_faults(Plant *pl);
 
 /* Steady-state helper (used by unit tests and by initialisation):
  * fuel flow (kg/s) at speed n_pu that gives net shaft power p_shaft_w,

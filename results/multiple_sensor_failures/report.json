@@ -1,0 +1,101 @@
+{
+  "scenario": "multiple_sensor_failures",
+  "name": "Multiple speed sensor failures",
+  "passed": true,
+  "positive_passed": true,
+  "criteria": [
+    {
+      "id": "stuck_flagged",
+      "text": "The stuck channel is flagged within 7 s",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 6.1 s",
+      "limit": "between 5 and 12 s"
+    },
+    {
+      "id": "survives_one",
+      "text": "One failed channel does not trip the unit",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "speed_held",
+      "text": "Speed stays above 3450 RPM while only one channel is lost",
+      "type": "min_above",
+      "passed": true,
+      "measured": "minimum 3499.8",
+      "limit": "> 3450"
+    },
+    {
+      "id": "trips_on_two",
+      "text": "The second failure trips the unit within 12 s",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 23.7 s",
+      "limit": "between 20 and 32 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is sensor fault",
+      "type": "final_is",
+      "passed": true,
+      "measured": "sensor fault",
+      "limit": "sensor fault"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 49.0 s",
+      "limit": "0 to 0.01"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3656.5968086938956,
+    "final_speed_rpm": 1168.1974440116264,
+    "peak_exh_gas_c": 487.7056861129297,
+    "peak_exh_tc_c": 487.5330316617798,
+    "peak_fuel_kg_s": 1.2539981691817208,
+    "peak_power_mw": 18.177310445357396,
+    "tripped": true,
+    "first_out": "sensor fault",
+    "peak_spread_c": 5.499296671056072,
+    "duration_s": 50.000000000005315
+  },
+  "negative_tests": [
+    {
+      "id": "no_diagnostics",
+      "disable": [
+        "sensor_diag"
+      ],
+      "text": "Without sensor diagnostics the voter never notices the failures: no alarm and no trip.",
+      "failed": [
+        "stuck_flagged",
+        "trips_on_two",
+        "first_out",
+        "fuel_closed"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3500.2172045360226,
+        "peak_exh_gas_c": 488.3800367882019,
+        "tripped": false,
+        "first_out": "none",
+        "final_speed_rpm": 3469.530597755734
+      }
+    }
+  ],
+  "run": {
+    "scenario file": "scenarios/multiple_sensor_failures.json",
+    "scenario sha256 (first 12)": "b6544eb491f6",
+    "run at (UTC)": "2026-10-12 16:27:38",
+    "git commit": "5faffda",
+    "seed": 51,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}

@@ -111,6 +111,10 @@ void plant_params_default(PlantParams *p)
 
     p->noise_speed_rpm = 1.0;
     p->noise_temp_c    = 0.25;
+    p->tc_offset_c[0]  =  3.0;
+    p->tc_offset_c[1]  = -2.0;
+    p->tc_offset_c[2]  =  1.0;
+    p->tc_offset_c[3]  = -2.0;
 }
 
 void plant_seed(Plant *pl, unsigned long long seed, int noise_enabled)
@@ -176,6 +180,9 @@ void plant_init(Plant *pl, const PlantParams *params)
 
     /* J from the inertia constant: H = 0.5 J w^2 / P_design */
     P->j_kgm2 = 2.0 * P->h_inertia_s * P->p_design_w / (P->omega_rated * P->omega_rated);
+
+    pl->in.perm_estop_ok = pl->in.perm_lube_ok = 1;
+    pl->in.perm_fuel_ok  = pl->in.perm_starter_ok = 1;
 
     pl->st.omega  = 0.0;
     pl->st.valve  = 0.0;
@@ -245,23 +252,75 @@ void plant_step(Plant *pl, double dt)
     s->time   += dt;
 }
 
+static double apply_fault(Plant *pl, SensorFault *f, double v)
+{
+    if (f->mode == SF_NONE) return v;
+    double age = pl->st.time - f->t_on;
+    if (age < 0.0) return v;
+    switch (f->mode) {
+    case SF_DRIFT: {
+        double d = f->a * age;
+        if (f->b > 0.0) {
+            if (d >  f->b) d =  f->b;
+            if (d < -f->b) d = -f->b;
+        }
+        return v + d;
+    }
+    case SF_STUCK:
+        if (!f->captured) { f->held = v; f->captured = 1; }
+        return f->held;
+    case SF_NOISY:  return v + f->a * rnd_pm1(pl);
+    case SF_OFFSET: return v + f->a;
+    default:        return v;
+    }
+}
+
 void plant_measure(Plant *pl, PlantMeasurements *m)
 {
     const PlantOutputs *o = &pl->out;
     const PlantParams *P = &pl->par;
-    double ns = 0.0, nt = 0.0;
-    if (pl->noise_enabled) {
-        ns = P->noise_speed_rpm * rnd_pm1(pl);
-        nt = P->noise_temp_c * rnd_pm1(pl);
+
+    for (int i = 0; i < 3; i++) {
+        double v = o->speed_rpm + (pl->noise_enabled ? P->noise_speed_rpm * rnd_pm1(pl) : 0.0);
+        v = apply_fault(pl, &pl->speed_fault[i], v);
+        m->speed_rpm[i] = v < 0.0 ? 0.0 : v;
     }
-    m->speed_rpm      = o->speed_rpm + ns;
-    if (m->speed_rpm < 0.0) m->speed_rpm = 0.0;
-    m->exh_temp_c     = o->t_exh_tc_c + nt;
+    for (int i = 0; i < 4; i++) {
+        double v = o->t_exh_tc_c + P->tc_offset_c[i]
+                 + (pl->noise_enabled ? P->noise_temp_c * rnd_pm1(pl) : 0.0);
+        m->tc_c[i] = apply_fault(pl, &pl->tc_fault[i], v);
+    }
     m->press_bar_g    = o->p_cd_bar_g;
     m->power_mw       = o->p_load_elec_mw;
     m->fuel_kg_s      = o->wf_kg_s;
     m->flame          = o->flame;
     m->breaker_closed = pl->in.breaker_closed;
+    m->estop_ok       = pl->in.perm_estop_ok;
+    m->lube_ok        = pl->in.perm_lube_ok;
+    m->fuel_ok        = pl->in.perm_fuel_ok;
+    m->starter_ok     = pl->in.perm_starter_ok;
+}
+
+void plant_inject_speed_fault(Plant *pl, int ch, int mode, double a, double b)
+{
+    if (ch < 0 || ch > 2) return;
+    SensorFault *f = &pl->speed_fault[ch];
+    memset(f, 0, sizeof *f);
+    f->mode = mode; f->a = a; f->b = b; f->t_on = pl->st.time;
+}
+
+void plant_inject_tc_fault(Plant *pl, int tc, int mode, double a, double b)
+{
+    if (tc < 0 || tc > 3) return;
+    SensorFault *f = &pl->tc_fault[tc];
+    memset(f, 0, sizeof *f);
+    f->mode = mode; f->a = a; f->b = b; f->t_on = pl->st.time;
+}
+
+void plant_clear_faults(Plant *pl)
+{
+    memset(pl->speed_fault, 0, sizeof pl->speed_fault);
+    memset(pl->tc_fault, 0, sizeof pl->tc_fault);
 }
 
 /* Bisection: fuel flow that balances a requested net shaft power at speed n_pu. */

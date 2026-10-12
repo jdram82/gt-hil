@@ -208,12 +208,12 @@ static void test_determinism(void)
     sim_set_start(a, 1); sim_set_start(b, 1);
     for (int i = 0; i < 3000; i++) { sim_step(a); sim_step(b); }
     SimOut oa, ob; sim_get(a, &oa); sim_get(b, &ob);
-    CHECK(oa.speed_rpm == ob.speed_rpm && oa.exh_meas_c == ob.exh_meas_c,
+    CHECK(oa.speed_rpm == ob.speed_rpm && oa.tc1_c == ob.tc1_c,
           "same seed gives identical results (%.4f RPM)", oa.speed_rpm);
     sim_reset(b, 43, 1); sim_set_start(b, 1);
     for (int i = 0; i < 3000; i++) sim_step(b);
     sim_get(b, &ob);
-    CHECK(oa.speed_meas_rpm != ob.speed_meas_rpm || oa.exh_meas_c != ob.exh_meas_c,
+    CHECK(oa.speed1_rpm != ob.speed1_rpm || oa.tc1_c != ob.tc1_c,
           "different seed gives different sensor noise");
     sim_destroy(a); sim_destroy(b);
 }

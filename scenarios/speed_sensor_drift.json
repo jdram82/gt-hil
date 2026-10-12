@@ -1,0 +1,72 @@
+{
+  "id": "speed_sensor_drift",
+  "name": "Speed sensor drift (one of three channels)",
+  "description": "Unit carries 80 % load. Speed channel 1 starts to drift upward at 10 RPM/s (up to +300 RPM). With three channels and median voting the controller must keep the real speed on target, flag the bad channel, and not trip.",
+  "seed": 31,
+  "noise": true,
+  "duration_s": 60.0,
+  "preroll": {
+    "load_pct": 80.0,
+    "settle_s": 30.0
+  },
+  "events": [
+    {
+      "t": 5.0,
+      "action": "speed_fault",
+      "ch": 0,
+      "mode": "drift",
+      "a": 10.0,
+      "b": 300.0
+    }
+  ],
+  "criteria": [
+    {
+      "id": "speed_low",
+      "type": "min_above",
+      "signal": "speed_rpm",
+      "limit": 3450.0,
+      "text": "Real speed never falls below 3450 RPM"
+    },
+    {
+      "id": "speed_high",
+      "type": "max_below",
+      "signal": "speed_rpm",
+      "limit": 3550.0,
+      "text": "Real speed never exceeds 3550 RPM"
+    },
+    {
+      "id": "flagged",
+      "type": "bit_set",
+      "signal": "alarm_word",
+      "bit": "speed1_bad",
+      "from_s": 5.0,
+      "to_s": 20.0,
+      "text": "Channel 1 is flagged bad within 15 s of the drift starting"
+    },
+    {
+      "id": "others_ok",
+      "type": "bit_clear",
+      "signal": "alarm_word",
+      "bit": "speed2_bad",
+      "text": "Channel 2 is never flagged"
+    },
+    {
+      "id": "no_trip",
+      "type": "flag_false",
+      "signal": "tripped",
+      "text": "Controller never trips"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "single_channel",
+      "disable": [
+        "voting"
+      ],
+      "must_fail": [
+        "speed_low"
+      ],
+      "text": "With voting removed the controller believes the drifting channel, cuts fuel, and the real speed sags."
+    }
+  ]
+}

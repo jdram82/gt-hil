@@ -25,4 +25,29 @@
 #define HIL_N_STARTER_CUTOUT_PU    0.60     /* starter drops out                */
 #define HIL_N_AT_SPEED_PU          0.98     /* declared "at speed"              */
 
+/* ---- Exhaust thermocouple spread (4 TCs) ---- */
+#define HIL_SPREAD_ALARM_C         40.0     /* max - min, alarm                  */
+#define HIL_SPREAD_TRIP_C          80.0     /* max - min, trip (after debounce)  */
+#define HIL_SPREAD_TRIP_DELAY_S    0.5
+
+/* ---- Speed sensor diagnostics (3 channels, median voting) ---- */
+#define HIL_SPEED_DEV_RPM          40.0     /* channel vs median, flag as bad    */
+#define HIL_SPEED_DEV_TIME_S       1.0      /* deviation must persist this long  */
+#define HIL_SPEED_FLAT_TIME_S      1.0      /* identical readings => flat-lined  */
+#define HIL_SPEED_FLAT_MIN_RPM     1000.0   /* flat-line test only when turning  */
+
+/* ---- Start-up sequence additions ---- */
+#define HIL_N_STANDSTILL_PU        0.05     /* start permissive / cool-down end  */
+#define HIL_WARMUP_S               5.0      /* hold at speed before sync permit  */
+#define HIL_SYNC_BAND_PU           0.005    /* +/-0.5 % speed to allow breaker   */
+
+/* ---- Communication watchdog (two-way) ---- */
+#define HIL_COMMS_ALARM_POLLS      3        /* failed polls -> alarm (150 ms)    */
+#define HIL_COMMS_TRIP_POLLS       10       /* failed polls -> trip  (500 ms)    */
+#define HIL_PLANT_WD_S             0.5      /* plant side: no command for this   */
+                                            /* long -> fuel closed, breaker open */
+
+/* ---- Governor ---- */
+#define HIL_DROOP_PU               0.04     /* 4 % droop when in droop mode      */
+
 #endif /* HIL_CONSTANTS_H */

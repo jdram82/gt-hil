@@ -2,13 +2,14 @@
   "scenario": "load_rejection",
   "name": "Load rejection from 50 percent load",
   "passed": true,
+  "positive_passed": true,
   "criteria": [
     {
       "id": "stable_before",
       "text": "Speed is within 3450-3550 RPM just before the load is lost",
       "type": "value_in_band_at",
       "passed": true,
-      "measured": "3499.8 at 9.5 s",
+      "measured": "3500.1 at 9.5 s",
       "limit": "3450 to 3550"
     },
     {
@@ -16,7 +17,7 @@
       "text": "Peak speed stays below the 3850 RPM overspeed trip level",
       "type": "max_below",
       "passed": true,
-      "measured": "peak 3635.5",
+      "measured": "peak 3647.4",
       "limit": "< 3850"
     },
     {
@@ -24,7 +25,7 @@
       "text": "Speed returns to 3450-3550 RPM within 30 s of the load loss and holds for 10 s",
       "type": "settles_in_band",
       "passed": true,
-      "measured": "settled 7.0 s after event",
+      "measured": "settled 7.3 s after event",
       "limit": "<= 30 s"
     },
     {
@@ -45,20 +46,47 @@
     }
   ],
   "metrics": {
-    "peak_speed_rpm": 3635.4911285760086,
-    "final_speed_rpm": 3499.8954700244035,
-    "peak_exh_gas_c": 377.99846464374707,
-    "peak_exh_tc_c": 377.7324600239016,
-    "peak_fuel_kg_s": 0.8840616439917957,
-    "peak_power_mw": 11.360418550973284,
+    "peak_speed_rpm": 3647.4393844356787,
+    "final_speed_rpm": 3500.0932066134797,
+    "peak_exh_gas_c": 377.9781778718183,
+    "peak_exh_tc_c": 377.7274957601139,
+    "peak_fuel_kg_s": 0.8841259119057362,
+    "peak_power_mw": 11.360675202276909,
     "tripped": false,
-    "duration_s": 60.000000000000426
+    "first_out": "none",
+    "peak_spread_c": 5.487904612723611,
+    "duration_s": 59.99999999999629
   },
+  "negative_tests": [
+    {
+      "id": "no_governor",
+      "disable": [
+        "governor",
+        "accel_limiter",
+        "breaker_preset"
+      ],
+      "text": "With the governor removed the rotor is left with the fuel it had at 50 % load and runs away until the overspeed protection trips it.",
+      "failed": [
+        "stable_before",
+        "peak_speed",
+        "recovers",
+        "no_trip"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 4147.063592685134,
+        "peak_exh_gas_c": 593.4570155091004,
+        "tripped": true,
+        "first_out": "overspeed",
+        "final_speed_rpm": 449.8052451059813
+      }
+    }
+  ],
   "run": {
     "scenario file": "scenarios/load_rejection.json",
-    "scenario sha256 (first 12)": "8cad7858f521",
-    "run at (UTC)": "2026-10-10 08:48:29",
-    "git commit": "not a git repository",
+    "scenario sha256 (first 12)": "2c71792718e9",
+    "run at (UTC)": "2026-10-12 16:27:07",
+    "git commit": "5faffda",
     "seed": 11,
     "sensor noise": true,
     "rated electrical power (MW)": "22.72",

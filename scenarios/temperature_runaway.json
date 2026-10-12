@@ -1,0 +1,80 @@
+{
+  "id": "temperature_runaway",
+  "name": "Exhaust temperature runaway (heat-wave overload)",
+  "description": "Unit carries 85 % load. The inlet air temperature then rises by 50 K over 40 s (heat wave / inlet heating) while the load stays fixed, so the exhaust temperature climbs through the 600 degC limiter and the 610 degC alarm. On this isolated, constant-power load the limiter cannot hold the load (cutting fuel lets the speed fall), so protection must take over: alarm first, then a latched over-temperature trip with first-out, fuel closed and breaker opened, before the gas temperature reaches damaging levels.",
+  "seed": 21,
+  "noise": true,
+  "duration_s": 120.0,
+  "preroll": {
+    "load_pct": 85.0,
+    "settle_s": 30.0
+  },
+  "events": [
+    {
+      "t": 5.0,
+      "action": "ambient_ramp",
+      "delta_k": 50.0,
+      "over_s": 40.0
+    }
+  ],
+  "criteria": [
+    {
+      "id": "alarm_first",
+      "type": "bit_set",
+      "signal": "alarm_word",
+      "bit": "overtemp",
+      "text": "The over-temperature alarm (610 degC) is raised"
+    },
+    {
+      "id": "trips",
+      "type": "flag_true",
+      "signal": "tripped",
+      "text": "The controller trips"
+    },
+    {
+      "id": "first_out",
+      "type": "final_is",
+      "signal": "trip_cause",
+      "value": "overtemp",
+      "text": "First-out cause is over-temperature"
+    },
+    {
+      "id": "gas_margin",
+      "type": "max_below",
+      "signal": "exh_gas_c",
+      "limit": 700.0,
+      "text": "True exhaust gas temperature never reaches 700 degC (damage margin)"
+    },
+    {
+      "id": "fuel_closed",
+      "type": "value_in_band_at",
+      "signal": "fuel_kg_s",
+      "at_s": 119.0,
+      "lo": 0.0,
+      "hi": 0.01,
+      "text": "Fuel flow is zero at the end of the run"
+    },
+    {
+      "id": "breaker_open",
+      "type": "value_in_band_at",
+      "signal": "breaker",
+      "at_s": 119.0,
+      "lo": 0.0,
+      "hi": 0.5,
+      "text": "Generator breaker is open at the end of the run"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "no_overtemp_trip",
+      "disable": [
+        "overtemp_trip"
+      ],
+      "must_fail": [
+        "trips",
+        "first_out"
+      ],
+      "text": "With the over-temperature trip removed, nothing stops the climb: no trip is raised."
+    }
+  ]
+}

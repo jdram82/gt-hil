@@ -2,6 +2,7 @@
   "scenario": "startup_to_rated",
   "name": "Startup to rated speed",
   "passed": true,
+  "positive_passed": true,
   "criteria": [
     {
       "id": "reach_rated_speed",
@@ -16,7 +17,7 @@
       "text": "Speed never exceeds the 3850 RPM overspeed trip level",
       "type": "max_below",
       "passed": true,
-      "measured": "peak 3500.4",
+      "measured": "peak 3500.3",
       "limit": "< 3850"
     },
     {
@@ -24,7 +25,7 @@
       "text": "Exhaust gas temperature stays below the 620 degC trip level",
       "type": "max_below",
       "passed": true,
-      "measured": "peak 255.2",
+      "measured": "peak 253.5",
       "limit": "< 620"
     },
     {
@@ -37,20 +38,44 @@
     }
   ],
   "metrics": {
-    "peak_speed_rpm": 3500.4042272426477,
-    "final_speed_rpm": 3499.9670127832487,
-    "peak_exh_gas_c": 255.15220372380736,
-    "peak_exh_tc_c": 225.4086867743208,
-    "peak_fuel_kg_s": 0.3832630475793114,
+    "peak_speed_rpm": 3500.2804912679594,
+    "final_speed_rpm": 3499.988175505615,
+    "peak_exh_gas_c": 253.53293066757385,
+    "peak_exh_tc_c": 225.354637420306,
+    "peak_fuel_kg_s": 0.38220207737659956,
     "peak_power_mw": 0.0,
     "tripped": false,
+    "first_out": "none",
+    "peak_spread_c": 5.487118810678197,
     "duration_s": 90.00000000000914
   },
+  "negative_tests": [
+    {
+      "id": "no_governor",
+      "disable": [
+        "governor"
+      ],
+      "text": "With the speed governor removed the start-up fuel ramp keeps accelerating the rotor past rated speed and the overspeed protection has to trip it.",
+      "failed": [
+        "reach_rated_speed",
+        "no_overspeed",
+        "no_trip"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3864.683037408036,
+        "peak_exh_gas_c": 253.53293066757385,
+        "tripped": true,
+        "first_out": "overspeed",
+        "final_speed_rpm": 678.1515204311386
+      }
+    }
+  ],
   "run": {
     "scenario file": "scenarios/startup_to_rated.json",
-    "scenario sha256 (first 12)": "80dc497ad128",
-    "run at (UTC)": "2026-10-10 08:48:40",
-    "git commit": "not a git repository",
+    "scenario sha256 (first 12)": "b5bfdd8834a4",
+    "run at (UTC)": "2026-10-12 16:28:44",
+    "git commit": "5faffda",
     "seed": 7,
     "sensor noise": true,
     "rated electrical power (MW)": "22.72",

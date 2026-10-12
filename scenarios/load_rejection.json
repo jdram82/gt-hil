@@ -5,22 +5,67 @@
   "seed": 11,
   "noise": true,
   "duration_s": 60.0,
-  "preroll": { "load_pct": 50.0, "settle_s": 30.0 },
+  "preroll": {
+    "load_pct": 50.0,
+    "settle_s": 30.0
+  },
   "events": [
-    { "t": 10.0, "action": "open_breaker" }
+    {
+      "t": 10.0,
+      "action": "open_breaker"
+    }
   ],
   "criteria": [
-    { "id": "stable_before", "type": "value_in_band_at", "signal": "speed_rpm",
-      "at_s": 9.5, "lo": 3450.0, "hi": 3550.0,
-      "text": "Speed is within 3450-3550 RPM just before the load is lost" },
-    { "id": "peak_speed", "type": "max_below", "signal": "speed_rpm", "limit": 3850.0,
-      "text": "Peak speed stays below the 3850 RPM overspeed trip level" },
-    { "id": "recovers", "type": "settles_in_band", "signal": "speed_rpm",
-      "after_s": 10.0, "lo": 3450.0, "hi": 3550.0, "within_s": 30.0, "hold_s": 10.0,
-      "text": "Speed returns to 3450-3550 RPM within 30 s of the load loss and holds for 10 s" },
-    { "id": "exhaust_temp_limit", "type": "max_below", "signal": "exh_gas_c", "limit": 620.0,
-      "text": "Exhaust gas temperature stays below the 620 degC trip level" },
-    { "id": "no_trip", "type": "flag_false", "signal": "tripped",
-      "text": "Controller never trips" }
+    {
+      "id": "stable_before",
+      "type": "value_in_band_at",
+      "signal": "speed_rpm",
+      "at_s": 9.5,
+      "lo": 3450.0,
+      "hi": 3550.0,
+      "text": "Speed is within 3450-3550 RPM just before the load is lost"
+    },
+    {
+      "id": "peak_speed",
+      "type": "max_below",
+      "signal": "speed_rpm",
+      "limit": 3850.0,
+      "text": "Peak speed stays below the 3850 RPM overspeed trip level"
+    },
+    {
+      "id": "recovers",
+      "type": "settles_in_band",
+      "signal": "speed_rpm",
+      "after_s": 10.0,
+      "lo": 3450.0,
+      "hi": 3550.0,
+      "within_s": 30.0,
+      "hold_s": 10.0,
+      "text": "Speed returns to 3450-3550 RPM within 30 s of the load loss and holds for 10 s"
+    },
+    {
+      "id": "exhaust_temp_limit",
+      "type": "max_below",
+      "signal": "exh_gas_c",
+      "limit": 620.0,
+      "text": "Exhaust gas temperature stays below the 620 degC trip level"
+    },
+    {
+      "id": "no_trip",
+      "type": "flag_false",
+      "signal": "tripped",
+      "text": "Controller never trips"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "no_governor",
+      "disable": [
+        "governor",
+        "accel_limiter",
+        "breaker_preset"
+      ],
+      "text": "With the governor removed the rotor is left with the fuel it had at 50 % load and runs away until the overspeed protection trips it."
+    }
   ]
 }

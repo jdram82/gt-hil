@@ -1,0 +1,91 @@
+{
+  "id": "multiple_sensor_failures",
+  "name": "Multiple speed sensor failures",
+  "description": "Unit carries 80 % load. Speed channel 1 sticks at 5 s: one failure must only raise an alarm. At 20 s channel 2 starts to drift: with two channels lost the controller can no longer vote and must trip with a sensor-fault first-out.",
+  "seed": 51,
+  "noise": true,
+  "duration_s": 50.0,
+  "preroll": {
+    "load_pct": 80.0,
+    "settle_s": 30.0
+  },
+  "events": [
+    {
+      "t": 5.0,
+      "action": "speed_fault",
+      "ch": 0,
+      "mode": "stuck"
+    },
+    {
+      "t": 20.0,
+      "action": "speed_fault",
+      "ch": 1,
+      "mode": "drift",
+      "a": 15.0,
+      "b": 400.0
+    }
+  ],
+  "criteria": [
+    {
+      "id": "stuck_flagged",
+      "type": "bit_set",
+      "signal": "alarm_word",
+      "bit": "speed1_bad",
+      "from_s": 5.0,
+      "to_s": 12.0,
+      "text": "The stuck channel is flagged within 7 s"
+    },
+    {
+      "id": "survives_one",
+      "type": "flag_false",
+      "signal": "tripped",
+      "to_s": 20.0,
+      "text": "One failed channel does not trip the unit"
+    },
+    {
+      "id": "speed_held",
+      "type": "min_above",
+      "signal": "speed_rpm",
+      "limit": 3450.0,
+      "to_s": 20.0,
+      "text": "Speed stays above 3450 RPM while only one channel is lost"
+    },
+    {
+      "id": "trips_on_two",
+      "type": "flag_true",
+      "signal": "tripped",
+      "from_s": 20.0,
+      "to_s": 32.0,
+      "text": "The second failure trips the unit within 12 s"
+    },
+    {
+      "id": "first_out",
+      "type": "final_is",
+      "signal": "trip_cause",
+      "value": "sensor_fault",
+      "text": "First-out cause is sensor fault"
+    },
+    {
+      "id": "fuel_closed",
+      "type": "value_in_band_at",
+      "signal": "fuel_kg_s",
+      "at_s": 49.0,
+      "lo": 0.0,
+      "hi": 0.01,
+      "text": "Fuel flow is zero at the end"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "no_diagnostics",
+      "disable": [
+        "sensor_diag"
+      ],
+      "must_fail": [
+        "stuck_flagged",
+        "trips_on_two"
+      ],
+      "text": "Without sensor diagnostics the voter never notices the failures: no alarm and no trip."
+    }
+  ]
+}

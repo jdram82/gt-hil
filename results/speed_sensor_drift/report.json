@@ -1,0 +1,91 @@
+{
+  "scenario": "speed_sensor_drift",
+  "name": "Speed sensor drift (one of three channels)",
+  "passed": true,
+  "positive_passed": true,
+  "criteria": [
+    {
+      "id": "speed_low",
+      "text": "Real speed never falls below 3450 RPM",
+      "type": "min_above",
+      "passed": true,
+      "measured": "minimum 3499.3",
+      "limit": "> 3450"
+    },
+    {
+      "id": "speed_high",
+      "text": "Real speed never exceeds 3550 RPM",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3500.3",
+      "limit": "< 3550"
+    },
+    {
+      "id": "flagged",
+      "text": "Channel 1 is flagged bad within 15 s of the drift starting",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 10.1 s",
+      "limit": "between 5 and 20 s"
+    },
+    {
+      "id": "others_ok",
+      "text": "Channel 2 is never flagged",
+      "type": "bit_clear",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "no_trip",
+      "text": "Controller never trips",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3500.3421930165196,
+    "final_speed_rpm": 3499.810222827377,
+    "peak_exh_gas_c": 487.929265184728,
+    "peak_exh_tc_c": 487.5810606231199,
+    "peak_fuel_kg_s": 1.2547658729758342,
+    "peak_power_mw": 18.17793376676056,
+    "tripped": false,
+    "first_out": "none",
+    "peak_spread_c": 5.491715851976153,
+    "duration_s": 59.99999999999629
+  },
+  "negative_tests": [
+    {
+      "id": "single_channel",
+      "disable": [
+        "voting"
+      ],
+      "text": "With voting removed the controller believes the drifting channel, cuts fuel, and the real speed sags.",
+      "failed": [
+        "speed_low",
+        "flagged"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3500.3232381117327,
+        "peak_exh_gas_c": 507.02882828705367,
+        "tripped": false,
+        "first_out": "none",
+        "final_speed_rpm": 3199.83773581984
+      }
+    }
+  ],
+  "run": {
+    "scenario file": "scenarios/speed_sensor_drift.json",
+    "scenario sha256 (first 12)": "8d0ff1babdf4",
+    "run at (UTC)": "2026-10-12 16:28:08",
+    "git commit": "5faffda",
+    "seed": 31,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}

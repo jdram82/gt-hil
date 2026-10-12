@@ -1,0 +1,102 @@
+{
+  "scenario": "temperature_runaway",
+  "name": "Exhaust temperature runaway (heat-wave overload)",
+  "passed": true,
+  "positive_passed": true,
+  "criteria": [
+    {
+      "id": "alarm_first",
+      "text": "The over-temperature alarm (610 degC) is raised",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 39.6 s",
+      "limit": "between 0 and 120 s"
+    },
+    {
+      "id": "trips",
+      "text": "The controller trips",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 57.4 s",
+      "limit": "between 0 and 120 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is over-temperature",
+      "type": "final_is",
+      "passed": true,
+      "measured": "overtemperature",
+      "limit": "overtemp"
+    },
+    {
+      "id": "gas_margin",
+      "text": "True exhaust gas temperature never reaches 700 degC (damage margin)",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 626.9",
+      "limit": "< 700"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end of the run",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 119.0 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "breaker_open",
+      "text": "Generator breaker is open at the end of the run",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 119.0 s",
+      "limit": "0 to 0.5"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3500.3481195175627,
+    "final_speed_rpm": 281.53928833936936,
+    "peak_exh_gas_c": 626.8704850228374,
+    "peak_exh_tc_c": 620.5490736512148,
+    "peak_fuel_kg_s": 1.3156934225516865,
+    "peak_power_mw": 19.31408732820448,
+    "tripped": true,
+    "first_out": "overtemperature",
+    "peak_spread_c": 5.484518199517083,
+    "duration_s": 119.99999999994172
+  },
+  "negative_tests": [
+    {
+      "id": "no_overtemp_trip",
+      "disable": [
+        "overtemp_trip"
+      ],
+      "text": "With the over-temperature trip removed, nothing stops the climb: no trip is raised.",
+      "failed": [
+        "trips",
+        "first_out",
+        "gas_margin",
+        "fuel_closed",
+        "breaker_open"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3500.3481195175627,
+        "peak_exh_gas_c": 1722.577138954227,
+        "tripped": false,
+        "first_out": "none",
+        "final_speed_rpm": 15.627656963817278
+      }
+    }
+  ],
+  "run": {
+    "scenario file": "scenarios/temperature_runaway.json",
+    "scenario sha256 (first 12)": "25273b6ed31e",
+    "run at (UTC)": "2026-10-12 16:29:17",
+    "git commit": "5faffda",
+    "seed": 21,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}

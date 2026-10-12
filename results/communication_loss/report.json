@@ -1,0 +1,144 @@
+{
+  "scenario": "communication_loss",
+  "name": "Communication loss (two-way watchdog)",
+  "passed": true,
+  "positive_passed": true,
+  "criteria": [
+    {
+      "id": "short_silent",
+      "text": "An 80 ms dropout raises no alarm",
+      "type": "bit_clear",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "medium_alarm",
+      "text": "A 300 ms dropout raises the comms alarm",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 15.2 s",
+      "limit": "between 15 and 20 s"
+    },
+    {
+      "id": "no_trip_short",
+      "text": "Neither short dropout trips the unit",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "plant_wd",
+      "text": "The plant-side watchdog acts within 2 s of the loss",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 30.5 s",
+      "limit": "between 30 and 32 s"
+    },
+    {
+      "id": "ctrl_trip",
+      "text": "The controller trips within 2 s of the loss",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 30.5 s",
+      "limit": "between 30 and 32 s"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero 2.5 s after the loss",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 32.5 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "breaker_open",
+      "text": "Breaker is open 2.5 s after the loss",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 32.5 s",
+      "limit": "0 to 0.5"
+    },
+    {
+      "id": "no_overspeed",
+      "text": "Speed stays below the overspeed trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3685.2",
+      "limit": "< 3850"
+    },
+    {
+      "id": "stays_latched",
+      "text": "Trip is still latched 3 s after the link returned (no auto-reset)",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "1.0 at 38.0 s",
+      "limit": "0.5 to 1.5"
+    },
+    {
+      "id": "cleared_by_reset",
+      "text": "Explicit reset clears the trip",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 45.0 s",
+      "limit": "-0.5 to 0.5"
+    },
+    {
+      "id": "no_restart",
+      "text": "With the start request still held, the unit does not restart (cool-down only)",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "6.0 at 54.0 s",
+      "limit": "5.5 to 6.5"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3685.159960388513,
+    "final_speed_rpm": 1271.1093602616932,
+    "peak_exh_gas_c": 487.8308672358784,
+    "peak_exh_tc_c": 487.55932630108725,
+    "peak_fuel_kg_s": 1.254453477108035,
+    "peak_power_mw": 18.17783637481047,
+    "tripped": true,
+    "first_out": "none",
+    "peak_spread_c": 5.47703738662824,
+    "duration_s": 55.00000000000084
+  },
+  "negative_tests": [
+    {
+      "id": "no_watchdog",
+      "disable": [
+        "comms_watchdog",
+        "plant_watchdog"
+      ],
+      "text": "With both watchdogs removed the unit keeps running on stale commands through a 5 s loss of control.",
+      "failed": [
+        "plant_wd",
+        "ctrl_trip",
+        "fuel_closed",
+        "breaker_open",
+        "stays_latched",
+        "no_restart"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3500.621492484092,
+        "peak_exh_gas_c": 488.3452564485418,
+        "tripped": false,
+        "first_out": "none",
+        "final_speed_rpm": 3499.953743516514
+      }
+    }
+  ],
+  "run": {
+    "scenario file": "scenarios/communication_loss.json",
+    "scenario sha256 (first 12)": "676f0419b2e5",
+    "run at (UTC)": "2026-10-12 16:26:08",
+    "git commit": "5faffda",
+    "seed": 61,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}

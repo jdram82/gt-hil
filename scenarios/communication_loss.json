@@ -1,0 +1,163 @@
+{
+  "id": "communication_loss",
+  "name": "Communication loss (two-way watchdog)",
+  "description": "Unit carries 80 % load. A 80 ms link dropout must pass unnoticed; a 300 ms dropout must raise an alarm only; a 5 s loss must trip the controller after 10 failed polls (500 ms) and make the plant side close the fuel valve and open the breaker by itself. The trip stays latched after the link returns and clears only on an explicit reset, after which the start request is locked out until it is re-issued.",
+  "seed": 61,
+  "noise": true,
+  "duration_s": 55.0,
+  "preroll": {
+    "load_pct": 80.0,
+    "settle_s": 30.0
+  },
+  "events": [
+    {
+      "t": 5.0,
+      "action": "link",
+      "up": false
+    },
+    {
+      "t": 5.08,
+      "action": "link",
+      "up": true
+    },
+    {
+      "t": 15.0,
+      "action": "link",
+      "up": false
+    },
+    {
+      "t": 15.3,
+      "action": "link",
+      "up": true
+    },
+    {
+      "t": 30.0,
+      "action": "link",
+      "up": false
+    },
+    {
+      "t": 35.0,
+      "action": "link",
+      "up": true
+    },
+    {
+      "t": 40.0,
+      "action": "reset",
+      "value": 1
+    },
+    {
+      "t": 41.0,
+      "action": "reset",
+      "value": 0
+    }
+  ],
+  "criteria": [
+    {
+      "id": "short_silent",
+      "type": "bit_clear",
+      "signal": "alarm_word",
+      "bit": "comms",
+      "to_s": 10.0,
+      "text": "An 80 ms dropout raises no alarm"
+    },
+    {
+      "id": "medium_alarm",
+      "type": "bit_set",
+      "signal": "alarm_word",
+      "bit": "comms",
+      "from_s": 15.0,
+      "to_s": 20.0,
+      "text": "A 300 ms dropout raises the comms alarm"
+    },
+    {
+      "id": "no_trip_short",
+      "type": "flag_false",
+      "signal": "tripped",
+      "to_s": 29.0,
+      "text": "Neither short dropout trips the unit"
+    },
+    {
+      "id": "plant_wd",
+      "type": "flag_true",
+      "signal": "plant_wd",
+      "from_s": 30.0,
+      "to_s": 32.0,
+      "text": "The plant-side watchdog acts within 2 s of the loss"
+    },
+    {
+      "id": "ctrl_trip",
+      "type": "flag_true",
+      "signal": "tripped",
+      "from_s": 30.0,
+      "to_s": 32.0,
+      "text": "The controller trips within 2 s of the loss"
+    },
+    {
+      "id": "fuel_closed",
+      "type": "value_in_band_at",
+      "signal": "fuel_kg_s",
+      "at_s": 32.5,
+      "lo": 0.0,
+      "hi": 0.01,
+      "text": "Fuel flow is zero 2.5 s after the loss"
+    },
+    {
+      "id": "breaker_open",
+      "type": "value_in_band_at",
+      "signal": "breaker",
+      "at_s": 32.5,
+      "lo": 0.0,
+      "hi": 0.5,
+      "text": "Breaker is open 2.5 s after the loss"
+    },
+    {
+      "id": "no_overspeed",
+      "type": "max_below",
+      "signal": "speed_rpm",
+      "limit": 3850.0,
+      "text": "Speed stays below the overspeed trip level"
+    },
+    {
+      "id": "stays_latched",
+      "type": "value_in_band_at",
+      "signal": "tripped",
+      "at_s": 38.0,
+      "lo": 0.5,
+      "hi": 1.5,
+      "text": "Trip is still latched 3 s after the link returned (no auto-reset)"
+    },
+    {
+      "id": "cleared_by_reset",
+      "type": "value_in_band_at",
+      "signal": "tripped",
+      "at_s": 45.0,
+      "lo": -0.5,
+      "hi": 0.5,
+      "text": "Explicit reset clears the trip"
+    },
+    {
+      "id": "no_restart",
+      "type": "value_in_band_at",
+      "signal": "ctrl_state",
+      "at_s": 54.0,
+      "lo": 5.5,
+      "hi": 6.5,
+      "text": "With the start request still held, the unit does not restart (cool-down only)"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "no_watchdog",
+      "disable": [
+        "comms_watchdog",
+        "plant_watchdog"
+      ],
+      "must_fail": [
+        "plant_wd",
+        "ctrl_trip",
+        "fuel_closed"
+      ],
+      "text": "With both watchdogs removed the unit keeps running on stale commands through a 5 s loss of control."
+    }
+  ]
+}

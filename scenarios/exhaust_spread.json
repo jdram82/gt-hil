@@ -1,0 +1,84 @@
+{
+  "id": "exhaust_spread",
+  "name": "Exhaust temperature spread (combustor fault)",
+  "description": "Unit carries 80 % load. Thermocouple 4 starts to read low at 5 degC/s, as it would behind a failed burner. The spread (max - min of the four) must raise an alarm at 40 degC and trip at 80 degC, with first-out recorded, while the median of four keeps the control temperature sane.",
+  "seed": 41,
+  "noise": true,
+  "duration_s": 45.0,
+  "preroll": {
+    "load_pct": 80.0,
+    "settle_s": 30.0
+  },
+  "events": [
+    {
+      "t": 5.0,
+      "action": "tc_fault",
+      "ch": 3,
+      "mode": "drift",
+      "a": -5.0,
+      "b": 200.0
+    }
+  ],
+  "criteria": [
+    {
+      "id": "alarm",
+      "type": "bit_set",
+      "signal": "alarm_word",
+      "bit": "spread",
+      "from_s": 5.0,
+      "to_s": 20.0,
+      "text": "Spread alarm is raised within 15 s"
+    },
+    {
+      "id": "no_early_trip",
+      "type": "flag_false",
+      "signal": "tripped",
+      "to_s": 12.0,
+      "text": "No trip while the spread is below 80 degC"
+    },
+    {
+      "id": "trips",
+      "type": "flag_true",
+      "signal": "tripped",
+      "from_s": 12.0,
+      "to_s": 30.0,
+      "text": "Trip once the spread passes 80 degC (12 to 30 s)"
+    },
+    {
+      "id": "first_out",
+      "type": "final_is",
+      "signal": "trip_cause",
+      "value": "exh_spread",
+      "text": "First-out cause is exhaust spread"
+    },
+    {
+      "id": "fuel_closed",
+      "type": "value_in_band_at",
+      "signal": "fuel_kg_s",
+      "at_s": 44.0,
+      "lo": 0.0,
+      "hi": 0.01,
+      "text": "Fuel flow is zero at the end"
+    },
+    {
+      "id": "gas_ok",
+      "type": "max_below",
+      "signal": "exh_gas_c",
+      "limit": 620.0,
+      "text": "True gas temperature stays below 620 degC throughout"
+    }
+  ],
+  "negative_tests": [
+    {
+      "id": "no_spread_trip",
+      "disable": [
+        "spread_trip"
+      ],
+      "must_fail": [
+        "trips",
+        "first_out"
+      ],
+      "text": "With the spread trip removed the failing burner is never acted on: no trip is raised."
+    }
+  ]
+}

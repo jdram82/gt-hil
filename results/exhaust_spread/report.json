@@ -1,0 +1,100 @@
+{
+  "scenario": "exhaust_spread",
+  "name": "Exhaust temperature spread (combustor fault)",
+  "passed": true,
+  "positive_passed": true,
+  "criteria": [
+    {
+      "id": "alarm",
+      "text": "Spread alarm is raised within 15 s",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 12.1 s",
+      "limit": "between 5 and 20 s"
+    },
+    {
+      "id": "no_early_trip",
+      "text": "No trip while the spread is below 80 degC",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "trips",
+      "text": "Trip once the spread passes 80 degC (12 to 30 s)",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 20.6 s",
+      "limit": "between 12 and 30 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is exhaust spread",
+      "type": "final_is",
+      "passed": true,
+      "measured": "exhaust spread",
+      "limit": "exh spread"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 44.0 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "gas_ok",
+      "text": "True gas temperature stays below 620 degC throughout",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 487.8",
+      "limit": "< 620"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3685.1429241718174,
+    "final_speed_rpm": 1274.4195248216408,
+    "peak_exh_gas_c": 487.77867433145866,
+    "peak_exh_tc_c": 487.5514638632916,
+    "peak_fuel_kg_s": 1.2542391106831272,
+    "peak_power_mw": 18.177687029575516,
+    "tripped": true,
+    "first_out": "exhaust spread",
+    "peak_spread_c": 204.99545456142448,
+    "duration_s": 45.00000000000993
+  },
+  "negative_tests": [
+    {
+      "id": "no_spread_trip",
+      "disable": [
+        "spread_trip"
+      ],
+      "text": "With the spread trip removed the failing burner is never acted on: no trip is raised.",
+      "failed": [
+        "trips",
+        "first_out",
+        "fuel_closed"
+      ],
+      "ok": true,
+      "metrics": {
+        "peak_speed_rpm": 3500.2946813141175,
+        "peak_exh_gas_c": 487.7906868672221,
+        "tripped": false,
+        "first_out": "none",
+        "final_speed_rpm": 3499.9600941133426
+      }
+    }
+  ],
+  "run": {
+    "scenario file": "scenarios/exhaust_spread.json",
+    "scenario sha256 (first 12)": "c12d101d9aa9",
+    "run at (UTC)": "2026-10-12 16:26:38",
+    "git commit": "5faffda",
+    "seed": 41,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}

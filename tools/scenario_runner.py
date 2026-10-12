@@ -37,15 +37,33 @@ LOG_EVERY = 10                      # CSV / plot at 10 Hz
 
 # Order must match struct SimOut in plant/sim.h (the library self-checks the count).
 OUT_FIELDS = [
-    "time_s", "speed_rpm", "speed_meas_rpm", "n_pu", "exh_gas_c", "exh_tc_c",
-    "exh_meas_c", "tit_k", "press_bar_g", "power_mw", "load_mw", "fuel_kg_s",
-    "valve_pos", "fsr_cmd", "fsr_gov", "fsr_acc", "fsr_temp", "fsr_start",
-    "selected", "ctrl_state", "tripped", "trip_cause", "flame", "starter_on",
-    "breaker", "ke_mj", "p_gas_net_mw", "p_comp_mw", "p_turb_mw", "p_shaft_net_mw",
+    "time_s", "speed_rpm", "speed1_rpm", "speed2_rpm", "speed3_rpm", "speed_voted_rpm",
+    "n_pu", "exh_gas_c", "exh_tc_c", "tc1_c", "tc2_c", "tc3_c", "tc4_c",
+    "exh_voted_c", "exh_spread_c", "tit_k", "press_bar_g", "power_mw", "load_mw",
+    "fuel_kg_s", "valve_pos", "fsr_cmd", "fsr_gov", "fsr_acc", "fsr_temp", "fsr_start",
+    "selected", "ctrl_state", "tripped", "trip_cause", "alarm_word", "perm_word",
+    "sensor_bad_word", "flame", "starter_on", "breaker", "sync_permit", "link_up",
+    "plant_wd", "missed_polls", "ke_mj", "p_gas_net_mw", "p_comp_mw", "p_turb_mw",
+    "p_shaft_net_mw",
 ]
-STATE_NAMES = ["IDLE", "CRANK", "IGNITE", "ACCEL", "RUN", "COOLDOWN", "TRIP"]
-TRIP_NAMES = ["none", "overspeed", "overtemperature", "flame-out", "fail to light"]
-CS_RUN = 4
+STATE_NAMES = ["IDLE", "CRANK", "IGNITE", "ACCEL", "WARMUP", "RUN", "COOLDOWN", "TRIP"]
+TRIP_NAMES = ["none", "overspeed", "overtemperature", "vibration", "low lube oil", "e-stop",
+              "flame-out", "fail to light", "exhaust spread", "sensor fault",
+              "communication loss", "fuel supply"]
+CS_RUN = 5
+
+# Must match the FEAT_* enum in controller/protection.h and the hil_regs.h codes.
+FEATURES = {"voting": 0, "sensor_diag": 1, "governor": 2, "accel_limiter": 3,
+            "temp_limiter": 4, "breaker_preset": 5, "overspeed_trip": 6,
+            "overtemp_trip": 7, "spread_trip": 8, "comms_watchdog": 9, "plant_watchdog": 10}
+FEAT_ALL = (1 << 11) - 1
+FAULT_MODES = {"drift": 1, "stuck": 2, "noisy": 3, "offset": 4}
+FAULT_CODES = {n: i for i, n in enumerate(
+    ["none", "overspeed", "overtemp", "vibration", "low_oil", "estop", "flameout",
+     "fail_to_light", "exh_spread", "sensor_fault", "comms_loss", "fuel_supply"])}
+PERMISSIVES = {"estop": 0, "lube": 1, "fuel": 2, "starter": 3}
+ALARM_BITS = {"overspeed": 1, "overtemp": 2, "spread": 4, "speed1_bad": 8, "speed2_bad": 16,
+              "speed3_bad": 32, "comms": 64, "start_block": 128}
 
 
 class SimOut(ctypes.Structure):
@@ -62,6 +80,16 @@ def load_lib():
     lib.sim_set_start.argtypes = [ctypes.c_void_p, ctypes.c_int]
     lib.sim_set_load.argtypes = [ctypes.c_void_p, ctypes.c_double]
     lib.sim_set_breaker.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    lib.sim_set_reset.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    lib.sim_set_droop.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    lib.sim_set_link.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    lib.sim_set_permissive.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
+    lib.sim_inject_speed_fault.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int,
+                                           ctypes.c_double, ctypes.c_double]
+    lib.sim_inject_tc_fault.argtypes = lib.sim_inject_speed_fault.argtypes
+    lib.sim_clear_faults.argtypes = [ctypes.c_void_p]
+    lib.sim_set_ambient_k.argtypes = [ctypes.c_void_p, ctypes.c_double]
+    lib.sim_set_features.argtypes = [ctypes.c_void_p, ctypes.c_uint]
     lib.sim_step.argtypes = [ctypes.c_void_p]
     lib.sim_get.argtypes = [ctypes.c_void_p, ctypes.POINTER(SimOut)]
     lib.sim_rated_power_mw.argtypes = [ctypes.c_void_p]
@@ -73,17 +101,23 @@ def load_lib():
 
 
 class Sim:
-    def __init__(self, lib, seed, noise):
+    def __init__(self, lib, seed, noise, features=FEAT_ALL):
         self.lib = lib
         self.h = lib.sim_create()
         lib.sim_reset(self.h, seed, 1 if noise else 0)
+        lib.sim_set_features(self.h, features)
         self.out = SimOut()
+        self.ramp = None                       # (t_start, t_end, k0, k1) ambient ramp
         self.rated_mw = lib.sim_rated_power_mw(self.h)
 
     def close(self):
         self.lib.sim_destroy(self.h)
 
     def step(self):
+        if self.ramp:
+            t0, t1, k0, k1 = self.ramp
+            f = min(1.0, max(0.0, (self.out.time_s - t0) / (t1 - t0)))
+            self.lib.sim_set_ambient_k(self.h, k0 + (k1 - k0) * f)
         self.lib.sim_step(self.h)
         self.lib.sim_get(self.h, ctypes.byref(self.out))
         return self.out
@@ -91,6 +125,29 @@ class Sim:
     def start(self, on):       self.lib.sim_set_start(self.h, 1 if on else 0)
     def load(self, mw):        self.lib.sim_set_load(self.h, mw)
     def breaker(self, closed): self.lib.sim_set_breaker(self.h, 1 if closed else 0)
+
+    def apply(self, ev):
+        """Apply one scenario event. Supervisor-side faults only touch the plant."""
+        a, L, h = ev["action"], self.lib, self.h
+        if a == "start":            self.start(True)
+        elif a == "stop":           self.start(False)
+        elif a == "open_breaker":   self.breaker(False)
+        elif a == "close_breaker":  self.breaker(True)
+        elif a == "set_load":       self.load(ev.get("mw", self.rated_mw * ev.get("pct", 0.0) / 100.0))
+        elif a == "reset":          L.sim_set_reset(h, 1 if ev.get("value", 1) else 0)
+        elif a == "droop":          L.sim_set_droop(h, 1 if ev.get("value", 1) else 0)
+        elif a == "link":           L.sim_set_link(h, 1 if ev["up"] else 0)
+        elif a == "permissive":     L.sim_set_permissive(h, PERMISSIVES[ev["name"]], 1 if ev["ok"] else 0)
+        elif a == "speed_fault":    L.sim_inject_speed_fault(h, ev["ch"], FAULT_MODES[ev["mode"]],
+                                                             ev.get("a", 0.0), ev.get("b", 0.0))
+        elif a == "tc_fault":       L.sim_inject_tc_fault(h, ev["ch"], FAULT_MODES[ev["mode"]],
+                                                          ev.get("a", 0.0), ev.get("b", 0.0))
+        elif a == "clear_faults":   L.sim_clear_faults(h)
+        elif a == "ambient_ramp":
+            t = self.out.time_s
+            self.ramp = (t, t + ev["over_s"], 288.15, 288.15 + ev["delta_k"])
+        else:
+            raise ValueError(f"unknown action {a}")
 
 
 # --------------------------------------------------------------------------
@@ -123,11 +180,15 @@ def preroll(sim, spec):
     return target_mw
 
 
-def run(sc, lib):
-    sim = Sim(lib, int(sc.get("seed", 1)), bool(sc.get("noise", True)))
+def run(sc, lib, features=FEAT_ALL):
+    # The preroll always runs with every rule on; the rule under test is removed
+    # only when the scenario proper begins (otherwise the unit would never get there).
+    sim = Sim(lib, int(sc.get("seed", 1)), bool(sc.get("noise", True)),
+              FEAT_ALL if sc.get("preroll") else features)
     try:
         if sc.get("preroll"):
             preroll(sim, sc["preroll"])
+            lib.sim_set_features(sim.h, features)
         t0 = sim.out.time_s
         events = sorted(sc.get("events", []), key=lambda e: e["t"])
         ei = 0
@@ -138,17 +199,9 @@ def run(sc, lib):
             t = sim.out.time_s - t0
             while ei < len(events) and t >= events[ei]["t"] - 1e-9:
                 ev = events[ei]
-                a = ev["action"]
-                if a == "start":           sim.start(True)
-                elif a == "stop":          sim.start(False)
-                elif a == "open_breaker":  sim.breaker(False)
-                elif a == "close_breaker": sim.breaker(True)
-                elif a == "set_load":
-                    mw = ev.get("mw", sim.rated_mw * ev.get("pct", 0.0) / 100.0)
-                    sim.load(mw)
-                else:
-                    raise ValueError(f"unknown action {a}")
-                fired.append({"t": ev["t"], "action": a})
+                sim.apply(ev)
+                fired.append({"t": ev["t"], "action": ev["action"],
+                              "detail": {k: v for k, v in ev.items() if k not in ("t", "action")}})
                 ei += 1
             o = sim.step()
             rows.append([getattr(o, n) for n in OUT_FIELDS])
@@ -178,6 +231,11 @@ def first_run(t, ok, start_t, hold_s):
     return None
 
 
+def win(t, crit):
+    """Boolean mask of the samples inside [from_s, to_s]."""
+    return (t >= crit.get("from_s", 0.0)) & (t <= crit.get("to_s", 1e12))
+
+
 def evaluate(crit, d):
     t = d["time_s"]
     sig = d[crit["signal"]]
@@ -191,27 +249,52 @@ def evaluate(crit, d):
         r["measured"] = "not reached" if t_reach is None else f"reached at {t_reach:.1f} s"
         r["limit"] = f"<= {crit['within_s']:.0f} s"
     elif ty == "max_below":
-        m = t >= crit.get("from_s", 0.0)
+        m = win(t, crit)
         peak = float(np.max(sig[m]))
         r["passed"] = peak < crit["limit"]
         r["measured"] = f"peak {peak:.1f}"
         r["limit"] = f"< {crit['limit']:.0f}"
     elif ty == "min_above":
-        m = t >= crit.get("from_s", 0.0)
+        m = win(t, crit)
         low = float(np.min(sig[m]))
         r["passed"] = low > crit["limit"]
         r["measured"] = f"minimum {low:.1f}"
         r["limit"] = f"> {crit['limit']:.0f}"
     elif ty == "flag_false":
-        r["passed"] = not bool(np.any(sig > 0.5))
-        r["measured"] = "never set" if r["passed"] else f"set at {t[np.argmax(sig > 0.5)]:.1f} s"
+        m = win(t, crit)
+        hit = (sig > 0.5) & m
+        r["passed"] = not bool(np.any(hit))
+        r["measured"] = "never set" if r["passed"] else f"set at {t[np.argmax(hit)]:.1f} s"
         r["limit"] = "never"
+    elif ty == "flag_true":
+        m = win(t, crit)
+        hit = (sig > 0.5) & m
+        r["passed"] = bool(np.any(hit))
+        r["measured"] = "never set" if not r["passed"] else f"set at {t[np.argmax(hit)]:.1f} s"
+        r["limit"] = f"between {crit.get('from_s', 0):.0f} and {crit.get('to_s', t[-1]):.0f} s"
+    elif ty in ("bit_set", "bit_clear"):
+        m = win(t, crit)
+        mask = ALARM_BITS[crit["bit"]]
+        hit = ((sig.astype(int) & mask) != 0) & m
+        if ty == "bit_set":
+            r["passed"] = bool(np.any(hit))
+            r["measured"] = "never set" if not r["passed"] else f"set at {t[np.argmax(hit)]:.1f} s"
+            r["limit"] = f"between {crit.get('from_s', 0):.0f} and {crit.get('to_s', t[-1]):.0f} s"
+        else:
+            r["passed"] = not bool(np.any(hit))
+            r["measured"] = "never set" if r["passed"] else f"set at {t[np.argmax(hit)]:.1f} s"
+            r["limit"] = "never"
+    elif ty == "final_is":
+        v = int(round(float(sig[-1])))
+        r["passed"] = v == FAULT_CODES[crit["value"]]
+        r["measured"] = TRIP_NAMES[v] if 0 <= v < len(TRIP_NAMES) else str(v)
+        r["limit"] = crit["value"].replace("_", " ")
     elif ty == "value_in_band_at":
         i = int(np.searchsorted(t, crit["at_s"]))
         v = float(sig[min(i, len(sig) - 1)])
         r["passed"] = crit["lo"] <= v <= crit["hi"]
         r["measured"] = f"{v:.1f} at {crit['at_s']:.1f} s"
-        r["limit"] = f"{crit['lo']:.0f} to {crit['hi']:.0f}"
+        r["limit"] = f"{crit['lo']:g} to {crit['hi']:g}"
     elif ty == "settles_in_band":
         ok = (sig >= crit["lo"]) & (sig <= crit["hi"])
         ts = first_run(t, ok, crit["after_s"], crit["hold_s"])
@@ -233,6 +316,8 @@ def metrics(d):
         "peak_fuel_kg_s": float(np.max(d["fuel_kg_s"])),
         "peak_power_mw": float(np.max(d["power_mw"])),
         "tripped": bool(np.any(d["tripped"] > 0.5)),
+        "first_out": TRIP_NAMES[int(round(d["trip_cause"][-1]))],
+        "peak_spread_c": float(np.max(d["exh_spread_c"])),
         "duration_s": float(t[-1]),
     }
 
@@ -260,25 +345,30 @@ def write_csv(path, d, meta):
             w.writerow([f"{d[n][i]:.6g}" for n in OUT_FIELDS])
 
 
-def plot(path, sc, d, fired):
+def plot(path, sc, d, fired, title_suffix=""):
     t = d["time_s"]
-    fig, ax = plt.subplots(5, 1, figsize=(10, 12), sharex=True,
-                           gridspec_kw={"height_ratios": [3, 2.4, 2.4, 2, 1.4]})
+    fig, ax = plt.subplots(6, 1, figsize=(10, 14), sharex=True,
+                           gridspec_kw={"height_ratios": [3, 2.4, 2.2, 1.8, 1.4, 1.4]})
     c = {"blue": "#1f77b4", "orange": "#e07b00", "green": "#2a9d4b", "red": "#d62728",
          "grey": "#777777", "purple": "#7b4fb3"}
 
+    for k, col in (("speed1_rpm", "#9ecae1"), ("speed2_rpm", "#a1d99b"), ("speed3_rpm", "#fdae6b")):
+        ax[0].plot(t, d[k], color=col, lw=0.8, label=k.replace("_rpm", " (meas.)"))
+    ax[0].plot(t, d["speed_voted_rpm"], color=c["purple"], lw=1.0, ls="--", label="Voted")
     ax[0].plot(t, d["speed_rpm"], color=c["blue"], lw=1.6, label="Speed (true)")
     ax[0].axhspan(3450, 3550, color=c["green"], alpha=0.12, label="3450-3550 RPM band")
     ax[0].axhline(3850, color=c["red"], ls="--", lw=1, label="Overspeed trip 3850")
     ax[0].set_ylabel("Speed (RPM)")
-    ax[0].legend(loc="center right", fontsize=8)
+    ax[0].legend(loc="center right", fontsize=7, ncol=2)
 
+    for k in ("tc1_c", "tc2_c", "tc3_c", "tc4_c"):
+        ax[1].plot(t, d[k], lw=0.7, alpha=0.7, label=k.replace("_c", ""))
     ax[1].plot(t, d["exh_gas_c"], color=c["orange"], lw=1.4, label="Exhaust gas (true)")
-    ax[1].plot(t, d["exh_tc_c"], color=c["purple"], lw=1.2, ls="-", label="Thermocouple (3 s lag)")
+    ax[1].plot(t, d["exh_voted_c"], color="black", lw=1.0, ls="--", label="Median of 4")
     ax[1].axhline(620, color=c["red"], ls="--", lw=1, label="Trip 620")
     ax[1].axhline(600, color=c["grey"], ls=":", lw=1, label="Limiter 600")
     ax[1].set_ylabel("Exhaust temp (degC)")
-    ax[1].legend(loc="center right", fontsize=8)
+    ax[1].legend(loc="center right", fontsize=7, ncol=2)
 
     ax[2].plot(t, d["fsr_cmd"], color="black", lw=2.0, label="FSR commanded (min-select)")
     ax[2].plot(t, np.clip(d["fsr_gov"], 0, 1.05), color=c["blue"], lw=0.9, alpha=0.8, label="Governor")
@@ -286,7 +376,7 @@ def plot(path, sc, d, fired):
     ax[2].plot(t, np.clip(d["fsr_temp"], 0, 1.05), color=c["orange"], lw=0.9, alpha=0.8, label="Temperature")
     ax[2].plot(t, np.clip(d["fsr_start"], 0, 1.05), color=c["grey"], lw=0.9, alpha=0.8, label="Start ramp")
     ax[2].set_ylim(-0.03, 1.08)
-    ax[2].set_ylabel("Fuel demand (FSR, 0-1)")
+    ax[2].set_ylabel("Fuel demand (FSR)")
     ax[2].legend(loc="center right", fontsize=7, ncol=2)
 
     ax[3].plot(t, d["power_mw"], color=c["green"], lw=1.4, label="Electrical output")
@@ -296,21 +386,32 @@ def plot(path, sc, d, fired):
 
     ax[4].step(t, d["ctrl_state"], where="post", color="black", lw=1.4)
     ax[4].set_yticks(range(len(STATE_NAMES)))
-    ax[4].set_yticklabels(STATE_NAMES, fontsize=7)
-    ax[4].set_ylabel("Controller state")
-    ax[4].set_xlabel("Scenario time (s)")
+    ax[4].set_yticklabels(STATE_NAMES, fontsize=6)
+    ax[4].set_ylabel("Ctrl state")
+
+    ax[5].step(t, d["link_up"] * 0.9 + 0.0, where="post", color=c["blue"], lw=1.0, label="link up")
+    ax[5].step(t, d["tripped"] * 0.8 + 1.1, where="post", color=c["red"], lw=1.0, label="tripped")
+    ax[5].step(t, d["plant_wd"] * 0.8 + 2.2, where="post", color=c["orange"], lw=1.0, label="plant watchdog")
+    ax[5].step(t, d["breaker"] * 0.8 + 3.3, where="post", color=c["green"], lw=1.0, label="breaker")
+    ax[5].set_yticks([])
+    ax[5].legend(loc="center right", fontsize=7, ncol=2)
+    ax[5].set_xlabel("Scenario time (s)")
 
     for a in ax:
         a.grid(alpha=0.25)
         for ev in fired:
             a.axvline(ev["t"], color=c["red"], lw=0.8, alpha=0.5)
-    ax[0].set_title(sc["name"], fontsize=12)
+    fo = int(round(d["trip_cause"][-1]))
+    if fo:
+        ax[4].text(0.01, 0.9, f"first-out: {TRIP_NAMES[fo]}", transform=ax[4].transAxes, fontsize=8,
+                   color=c["red"], va="top")
+    ax[0].set_title(sc["name"] + title_suffix, fontsize=12)
     fig.tight_layout()
     fig.savefig(path, dpi=110)
     plt.close(fig)
 
 
-def write_report(path, sc, results, mets, fired, meta, passed):
+def write_report(path, sc, results, mets, fired, meta, passed, negatives=()):
     L = []
     L.append(f"# {sc['name']}\n")
     L.append(f"**Result: {'PASS' if passed else 'FAIL'}**\n")
@@ -326,10 +427,20 @@ def write_report(path, sc, results, mets, fired, meta, passed):
     L.append(f"- Peak exhaust gas temperature: {mets['peak_exh_gas_c']:.0f} degC")
     L.append(f"- Peak fuel flow: {mets['peak_fuel_kg_s']:.2f} kg/s")
     L.append(f"- Peak electrical output: {mets['peak_power_mw']:.1f} MW")
-    L.append(f"- Tripped: {'yes' if mets['tripped'] else 'no'}")
+    L.append(f"- Tripped: {'yes' if mets['tripped'] else 'no'}"
+             + (f" (first-out: {mets['first_out']})" if mets['tripped'] else ""))
+    L.append(f"- Peak exhaust spread: {mets['peak_spread_c']:.0f} degC")
+    if negatives:
+        L.append("\n## Negative tests (the rule is removed; the scenario must FAIL)\n")
+        L.append("| Outcome | Rule removed | Criteria that failed | Why this proves the rule |")
+        L.append("| --- | --- | --- | --- |")
+        for n in negatives:
+            L.append(f"| {'FAILS AS INTENDED' if n['ok'] else 'UNEXPECTED PASS'} | {', '.join(n['disable'])} "
+                     f"| {', '.join(n['failed']) or 'none'} | {n['text']} |")
     L.append("\n## Events\n")
     for e in fired:
-        L.append(f"- t = {e['t']:.1f} s: {e['action']}")
+        det = ", ".join(f"{k}={v}" for k, v in e.get("detail", {}).items())
+        L.append(f"- t = {e['t']:.1f} s: {e['action']}" + (f" ({det})" if det else ""))
     L.append("\n## Plot\n")
     L.append("![scenario plot](plot.png)\n")
     L.append("## Run record\n")
@@ -337,6 +448,13 @@ def write_report(path, sc, results, mets, fired, meta, passed):
         L.append(f"- {k}: {v}")
     with open(path, "w") as f:
         f.write("\n".join(L) + "\n")
+
+
+def feature_mask(disable):
+    m = FEAT_ALL
+    for name in disable:
+        m &= ~(1 << FEATURES[name])
+    return m
 
 
 def run_one(path, lib, out_root):
@@ -348,7 +466,28 @@ def run_one(path, lib, out_root):
     for r in results:
         r["passed"] = bool(r["passed"])
     mets = metrics(data)
-    passed = all(r["passed"] for r in results)
+    positive_ok = all(r["passed"] for r in results)
+
+    # ---- negative tests: remove one rule, the scenario must now fail ----
+    out = os.path.join(out_root, sc["id"])
+    os.makedirs(out, exist_ok=True)
+    negatives = []
+    for neg in sc.get("negative_tests", []):
+        nd, nf, _ = run(sc, lib, feature_mask(neg["disable"]))
+        nres = [evaluate(c, nd) for c in sc["criteria"]]
+        failed = [r["id"] for r in nres if not bool(r["passed"])]
+        expect = neg.get("must_fail", [])
+        ok = bool(failed) and all(e in failed for e in expect)
+        nm = metrics(nd)
+        negatives.append({"id": neg["id"], "disable": neg["disable"], "text": neg["text"],
+                          "failed": failed, "ok": ok,
+                          "metrics": {"peak_speed_rpm": nm["peak_speed_rpm"], "peak_exh_gas_c": nm["peak_exh_gas_c"],
+                                      "tripped": nm["tripped"], "first_out": nm["first_out"],
+                                      "final_speed_rpm": nm["final_speed_rpm"]}})
+        plot(os.path.join(out, f"negative_{neg['id']}.png"), sc, nd, nf,
+             f"  [NEGATIVE TEST: {', '.join(neg['disable'])} removed]")
+    negatives_ok = all(n["ok"] for n in negatives)
+    passed = positive_ok and negatives_ok
 
     meta = {
         "scenario file": os.path.relpath(path, ROOT),
@@ -361,20 +500,23 @@ def run_one(path, lib, out_root):
         "python": platform.python_version(),
     }
 
-    out = os.path.join(out_root, sc["id"])
-    os.makedirs(out, exist_ok=True)
     write_csv(os.path.join(out, "data.csv"), data, meta)
     plot(os.path.join(out, "plot.png"), sc, data, fired)
-    write_report(os.path.join(out, "report.md"), sc, results, mets, fired, meta, passed)
+    write_report(os.path.join(out, "report.md"), sc, results, mets, fired, meta, passed, negatives)
     with open(os.path.join(out, "report.json"), "w") as f:
         json.dump({"scenario": sc["id"], "name": sc["name"], "passed": passed,
-                   "criteria": results, "metrics": mets, "run": meta}, f, indent=2,
+                   "positive_passed": positive_ok, "criteria": results, "metrics": mets,
+                   "negative_tests": negatives, "run": meta}, f, indent=2,
                   default=lambda o: o.item() if hasattr(o, "item") else str(o))
 
     print(f"\n{'PASS' if passed else 'FAIL'}  {sc['name']}")
     for r in results:
         print(f"   {'ok  ' if r['passed'] else 'FAIL'} {r['text']}  [{r['measured']}; limit {r['limit']}]")
-    return {"id": sc["id"], "name": sc["name"], "passed": passed, "results": results, "metrics": mets}
+    for n in negatives:
+        print(f"   {'neg ok ' if n['ok'] else 'NEG BAD'} without {', '.join(n['disable'])}: "
+              f"scenario fails on {', '.join(n['failed']) or 'nothing (!)'}")
+    return {"id": sc["id"], "name": sc["name"], "passed": passed, "results": results,
+            "metrics": mets, "negatives": negatives}
 
 
 def main():
@@ -388,15 +530,21 @@ def main():
 
     os.makedirs(args.out, exist_ok=True)
     n_ok = sum(1 for s in summary if s["passed"])
+    n_neg = sum(len(s["negatives"]) for s in summary)
+    n_neg_ok = sum(1 for s in summary for n in s["negatives"] if n["ok"])
     lines = ["# Scenario summary\n",
-             f"{n_ok} of {len(summary)} scenarios passed.\n",
-             "| Result | Scenario | Report |", "| --- | --- | --- |"]
+             f"{n_ok} of {len(summary)} scenarios passed. "
+             f"{n_neg_ok} of {n_neg} negative tests failed as intended.\n",
+             "| Result | Scenario | Negative tests | Report |", "| --- | --- | --- | --- |"]
     for s in summary:
-        lines.append(f"| {'PASS' if s['passed'] else 'FAIL'} | {s['name']} | [{s['id']}/report.md]({s['id']}/report.md) |")
+        nn = sum(1 for n in s["negatives"] if n["ok"])
+        lines.append(f"| {'PASS' if s['passed'] else 'FAIL'} | {s['name']} | {nn} of {len(s['negatives'])} "
+                     f"| [{s['id']}/report.md]({s['id']}/report.md) |")
     with open(os.path.join(args.out, "summary.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
 
-    print(f"\n=== {n_ok} of {len(summary)} scenarios passed ===")
+    print(f"\n=== {n_ok} of {len(summary)} scenarios passed, "
+          f"{n_neg_ok} of {n_neg} negative tests failed as intended ===")
     sys.exit(0 if n_ok == len(summary) else 1)
 
 
