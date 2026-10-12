@@ -1,0 +1,23 @@
+{
+  "id": "startup_to_rated",
+  "name": "Startup to rated speed",
+  "description": "Cold start from rest: crank, purge, light-off, accelerate, starter cut-out, governor takes over at rated speed (breaker open, no load).",
+  "seed": 7,
+  "noise": true,
+  "duration_s": 90.0,
+  "preroll": null,
+  "events": [
+    { "t": 0.0, "action": "start" }
+  ],
+  "criteria": [
+    { "id": "reach_rated_speed", "type": "reach_band", "signal": "speed_rpm",
+      "center": 3500.0, "tolerance": 50.0, "within_s": 60.0, "hold_s": 10.0,
+      "text": "Speed reaches 3500 +/- 50 RPM within 60 s and holds for 10 s" },
+    { "id": "no_overspeed", "type": "max_below", "signal": "speed_rpm", "limit": 3850.0,
+      "text": "Speed never exceeds the 3850 RPM overspeed trip level" },
+    { "id": "exhaust_temp_limit", "type": "max_below", "signal": "exh_gas_c", "limit": 620.0,
+      "text": "Exhaust gas temperature stays below the 620 degC trip level" },
+    { "id": "no_trip", "type": "flag_false", "signal": "tripped",
+      "text": "Controller never trips" }
+  ]
+}

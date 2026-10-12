@@ -1,0 +1,67 @@
+{
+  "scenario": "load_rejection",
+  "name": "Load rejection from 50 percent load",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "stable_before",
+      "text": "Speed is within 3450-3550 RPM just before the load is lost",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "3499.8 at 9.5 s",
+      "limit": "3450 to 3550"
+    },
+    {
+      "id": "peak_speed",
+      "text": "Peak speed stays below the 3850 RPM overspeed trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3635.5",
+      "limit": "< 3850"
+    },
+    {
+      "id": "recovers",
+      "text": "Speed returns to 3450-3550 RPM within 30 s of the load loss and holds for 10 s",
+      "type": "settles_in_band",
+      "passed": true,
+      "measured": "settled 7.0 s after event",
+      "limit": "<= 30 s"
+    },
+    {
+      "id": "exhaust_temp_limit",
+      "text": "Exhaust gas temperature stays below the 620 degC trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 378.0",
+      "limit": "< 620"
+    },
+    {
+      "id": "no_trip",
+      "text": "Controller never trips",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3635.4911285760086,
+    "final_speed_rpm": 3499.8954700244035,
+    "peak_exh_gas_c": 377.99846464374707,
+    "peak_exh_tc_c": 377.7324600239016,
+    "peak_fuel_kg_s": 0.8840616439917957,
+    "peak_power_mw": 11.360418550973284,
+    "tripped": false,
+    "duration_s": 60.000000000000426
+  },
+  "run": {
+    "scenario file": "scenarios/load_rejection.json",
+    "scenario sha256 (first 12)": "8cad7858f521",
+    "run at (UTC)": "2026-10-10 08:48:29",
+    "git commit": "not a git repository",
+    "seed": 11,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.14.4"
+  }
+}
