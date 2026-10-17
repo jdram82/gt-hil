@@ -44,8 +44,8 @@ Unit carries 80 % load. Speed channel 1 sticks at 5 s: one failure must only rai
 
 - scenario file: scenarios/multiple_sensor_failures.json
 - scenario sha256 (first 12): b6544eb491f6
-- run at (UTC): 2026-10-12 16:27:38
-- git commit: 5faffda
+- run at (UTC): 2026-10-17 15:54:01
+- git commit: f5faab9
 - seed: 51
 - sensor noise: True
 - rated electrical power (MW): 22.72

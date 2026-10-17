@@ -43,8 +43,8 @@ Unit carries 80 % load. Thermocouple 4 starts to read low at 5 degC/s, as it wou
 
 - scenario file: scenarios/exhaust_spread.json
 - scenario sha256 (first 12): c12d101d9aa9
-- run at (UTC): 2026-10-12 16:26:38
-- git commit: 5faffda
+- run at (UTC): 2026-10-17 15:52:33
+- git commit: f5faab9
 - seed: 41
 - sensor noise: True
 - rated electrical power (MW): 22.72

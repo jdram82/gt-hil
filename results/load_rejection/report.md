@@ -42,8 +42,8 @@ Unit is started, brought to rated speed and loaded to 50 %. The generator breake
 
 - scenario file: scenarios/load_rejection.json
 - scenario sha256 (first 12): 2c71792718e9
-- run at (UTC): 2026-10-12 16:27:07
-- git commit: 5faffda
+- run at (UTC): 2026-10-17 15:53:16
+- git commit: f5faab9
 - seed: 11
 - sensor noise: True
 - rated electrical power (MW): 22.72

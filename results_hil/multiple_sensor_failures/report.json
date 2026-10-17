@@ -1,0 +1,136 @@
+{
+  "scenario": "multiple_sensor_failures",
+  "name": "Multiple speed sensor failures",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "stuck_flagged",
+      "text": "The stuck channel is flagged within 7 s",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 6.0 s",
+      "limit": "between 5 and 12 s"
+    },
+    {
+      "id": "survives_one",
+      "text": "One failed channel does not trip the unit",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "speed_held",
+      "text": "Speed stays above 3450 RPM while only one channel is lost",
+      "type": "min_above",
+      "passed": true,
+      "measured": "minimum 3499.4",
+      "limit": "> 3450"
+    },
+    {
+      "id": "trips_on_two",
+      "text": "The second failure trips the unit within 12 s",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 23.8 s",
+      "limit": "between 20 and 32 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is sensor fault",
+      "type": "final_is",
+      "passed": true,
+      "measured": "sensor fault",
+      "limit": "sensor fault"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 49.0 s",
+      "limit": "0 to 0.01"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3655.94644,
+    "final_speed_rpm": 1171.13542,
+    "peak_exh_gas_c": 487.921645,
+    "peak_exh_tc_c": 487.564409,
+    "peak_fuel_kg_s": 1.25465005,
+    "peak_power_mw": 18.1783746,
+    "tripped": true,
+    "first_out": "sensor fault",
+    "peak_spread_c": 5.47420777,
+    "duration_s": 49.94999999999999
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/multiple_sensor_failures.json",
+    "scenario sha256 (first 12)": "b6544eb491f6",
+    "run at (UTC)": "2026-10-12 17:16:11",
+    "seed": 51,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 14290,
+      "mean": 133.2131,
+      "std": 937.856,
+      "p50": 84.16,
+      "p99": 489.886,
+      "p999": 9430.195,
+      "max": 49291.165
+    },
+    "plant_step_exec_us": {
+      "n": 14290,
+      "mean": 1.2286,
+      "std": 2.0964,
+      "p50": 1.138,
+      "p99": 2.119,
+      "p999": 14.021,
+      "max": 207.936
+    },
+    "poll_period_ms": {
+      "n": 2857,
+      "mean": 50.0,
+      "std": 0.8389,
+      "p50": 50.0035,
+      "p99": 50.9731,
+      "p999": 54.233,
+      "max": 77.8919
+    },
+    "response_latency_us": {
+      "n": 8574,
+      "mean": 11.0518,
+      "std": 27.9925,
+      "p50": 9.3,
+      "p99": 38.376,
+      "p999": 225.189,
+      "max": 1597.106
+    },
+    "modbus": {
+      "requests": 8574,
+      "input_reads": 2858,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 2859,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 6570,
+    "ctrl_update_us_max": 27,
+    "wake_lateness_us_mean": 106.4,
+    "wake_lateness_us_max": 27672.8
+  },
+  "plant_node_exit": null
+}

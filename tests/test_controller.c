@@ -163,6 +163,19 @@ static void test_voting(void)
           fabs(tc_median4(t) - 499.5));
 }
 
+static void test_sensor_ack(void)
+{
+    printf("Latched sensor flags are cleared by a reset in IDLE\n");
+    StandinCtrl c; CtrlInput in; ctrl_init(&c);
+    healthy(&in, 0.0);
+    for (int i = 0; i < 100; i++) { in.speed_rpm[0] = 200.0; cycles(&c, &in, 1); }   /* channel 1 reads 200 at standstill */
+    CHECK(c.sv.bad[0], "a channel far from the others is flagged even at standstill");
+    in.speed_rpm[0] = 0.0; cycles(&c, &in, 20);
+    CHECK(c.sv.bad[0], "the flag stays latched after the channel recovers");
+    in.reset_cmd = 1; cycles(&c, &in, 2);
+    CHECK(!c.sv.bad[0] && c.state == CS_IDLE, "reset edge in IDLE clears it");
+}
+
 /* ---- comms watchdog ---- */
 static void test_comms(void)
 {
@@ -311,6 +324,7 @@ int main(void)
     test_latch();          printf("\n");
     test_start_lockout();  printf("\n");
     test_voting();         printf("\n");
+    test_sensor_ack();     printf("\n");
     test_comms();          printf("\n");
     test_sync();           printf("\n");
     test_temp_limiter();   printf("\n");

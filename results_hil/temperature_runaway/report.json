@@ -1,0 +1,136 @@
+{
+  "scenario": "temperature_runaway",
+  "name": "Exhaust temperature runaway (heat-wave overload)",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "alarm_first",
+      "text": "The over-temperature alarm (610 degC) is raised",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 39.6 s",
+      "limit": "between 0 and 120 s"
+    },
+    {
+      "id": "trips",
+      "text": "The controller trips",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 57.5 s",
+      "limit": "between 0 and 120 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is over-temperature",
+      "type": "final_is",
+      "passed": true,
+      "measured": "overtemperature",
+      "limit": "overtemp"
+    },
+    {
+      "id": "gas_margin",
+      "text": "True exhaust gas temperature never reaches 700 degC (damage margin)",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 626.7",
+      "limit": "< 700"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end of the run",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 119.0 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "breaker_open",
+      "text": "Generator breaker is open at the end of the run",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 119.0 s",
+      "limit": "0 to 0.5"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3500.44312,
+    "final_speed_rpm": 281.523968,
+    "peak_exh_gas_c": 626.726284,
+    "peak_exh_tc_c": 620.684546,
+    "peak_fuel_kg_s": 1.31580668,
+    "peak_power_mw": 19.314612,
+    "tripped": true,
+    "first_out": "overtemperature",
+    "peak_spread_c": 5.4845182,
+    "duration_s": 119.94999999999999
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/temperature_runaway.json",
+    "scenario sha256 (first 12)": "25273b6ed31e",
+    "run at (UTC)": "2026-10-12 17:17:21",
+    "seed": 21,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 21290,
+      "mean": 134.4731,
+      "std": 736.0637,
+      "p50": 98.464,
+      "p99": 405.89,
+      "p999": 4283.795,
+      "max": 47018.32
+    },
+    "plant_step_exec_us": {
+      "n": 21290,
+      "mean": 1.358,
+      "std": 5.7078,
+      "p50": 1.248,
+      "p99": 2.072,
+      "p999": 16.147,
+      "max": 582.703
+    },
+    "poll_period_ms": {
+      "n": 4257,
+      "mean": 50.0,
+      "std": 1.0427,
+      "p50": 50.0004,
+      "p99": 51.2775,
+      "p999": 56.6718,
+      "max": 82.6012
+    },
+    "response_latency_us": {
+      "n": 12774,
+      "mean": 11.1641,
+      "std": 15.6418,
+      "p50": 9.567,
+      "p99": 41.843,
+      "p999": 131.677,
+      "max": 1473.438
+    },
+    "modbus": {
+      "requests": 12774,
+      "input_reads": 4258,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 4259,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 15252,
+    "ctrl_update_us_max": 44,
+    "wake_lateness_us_mean": 128.2,
+    "wake_lateness_us_max": 29975.0
+  },
+  "plant_node_exit": null
+}

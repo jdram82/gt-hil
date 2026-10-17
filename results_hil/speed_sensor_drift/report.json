@@ -1,0 +1,128 @@
+{
+  "scenario": "speed_sensor_drift",
+  "name": "Speed sensor drift (one of three channels)",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "speed_low",
+      "text": "Real speed never falls below 3450 RPM",
+      "type": "min_above",
+      "passed": true,
+      "measured": "minimum 3499.4",
+      "limit": "> 3450"
+    },
+    {
+      "id": "speed_high",
+      "text": "Real speed never exceeds 3550 RPM",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3500.5",
+      "limit": "< 3550"
+    },
+    {
+      "id": "flagged",
+      "text": "Channel 1 is flagged bad within 15 s of the drift starting",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 10.2 s",
+      "limit": "between 5 and 20 s"
+    },
+    {
+      "id": "others_ok",
+      "text": "Channel 2 is never flagged",
+      "type": "bit_clear",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "no_trip",
+      "text": "Controller never trips",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3500.49052,
+    "final_speed_rpm": 3499.591,
+    "peak_exh_gas_c": 488.048555,
+    "peak_exh_tc_c": 487.587064,
+    "peak_fuel_kg_s": 1.255055,
+    "peak_power_mw": 18.1787044,
+    "tripped": false,
+    "first_out": "none",
+    "peak_spread_c": 5.47687058,
+    "duration_s": 60.05
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/speed_sensor_drift.json",
+    "scenario sha256 (first 12)": "8d0ff1babdf4",
+    "run at (UTC)": "2026-10-12 17:16:21",
+    "seed": 31,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 15300,
+      "mean": 121.521,
+      "std": 785.8945,
+      "p50": 82.322,
+      "p99": 442.423,
+      "p999": 4624.393,
+      "max": 46962.348
+    },
+    "plant_step_exec_us": {
+      "n": 15300,
+      "mean": 1.5168,
+      "std": 22.5607,
+      "p50": 1.087,
+      "p99": 2.112,
+      "p999": 43.094,
+      "max": 2379.897
+    },
+    "poll_period_ms": {
+      "n": 3059,
+      "mean": 50.0,
+      "std": 1.2599,
+      "p50": 50.0,
+      "p99": 51.5645,
+      "p999": 56.2363,
+      "max": 93.0087
+    },
+    "response_latency_us": {
+      "n": 9180,
+      "mean": 10.443,
+      "std": 5.8843,
+      "p50": 9.746,
+      "p99": 20.547,
+      "p999": 72.129,
+      "max": 352.592
+    },
+    "modbus": {
+      "requests": 9180,
+      "input_reads": 3060,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 3061,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 13247,
+    "ctrl_update_us_max": 17,
+    "wake_lateness_us_mean": 115.8,
+    "wake_lateness_us_max": 36560.4
+  },
+  "plant_node_exit": null
+}

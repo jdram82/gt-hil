@@ -89,6 +89,15 @@ void  sim_set_temp_tuning(Sim *s, double kp, double ki, double headroom);
 void  sim_set_ambient_k(Sim *s, double t_amb_k);   /* inlet temperature (hot-day / heat-wave test) */
 void  sim_set_features(Sim *s, unsigned mask);   /* FEAT_* , FEAT_ALL = normal */
 
+/* External-controller mode (hardware in the loop): the controller runs on another
+ * device. sim_step() then skips its own controller; commands arrive through
+ * sim_ext_write() (feeding the plant-side watchdog) and measurements leave
+ * through sim_ext_sample(). */
+void  sim_ext_enable(Sim *s);
+void  sim_ext_sample(Sim *s, PlantMeasurements *m);
+void  sim_ext_write(Sim *s, double fsr, unsigned do_word, int ctrl_state, int first_out, unsigned alarm_word);
+int   sim_ext_watchdog_active(const Sim *s);
+
 /* Tuning access for tests */
 StandinCtrl *sim_ctrl(Sim *s);
 Plant       *sim_plant(Sim *s);

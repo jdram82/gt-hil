@@ -159,6 +159,10 @@ void ctrl_update(StandinCtrl *c, double dt, const CtrlInput *in)
         }
     }
 
+    else if (reset_edge && (c->state == CS_IDLE || c->state == CS_COOLDOWN)) {
+        speedvote_clear(&c->sv);              /* operator acknowledges latched sensor flags */
+    }
+
     c->perm_word = ctrl_permissives(c, in);
     c->alarm_base = al;
     c->alarm_word = al | (c->missed_polls >= HIL_COMMS_ALARM_POLLS ? HIL_AL_COMMS : 0);

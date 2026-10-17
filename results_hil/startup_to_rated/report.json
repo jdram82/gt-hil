@@ -1,0 +1,120 @@
+{
+  "scenario": "startup_to_rated",
+  "name": "Startup to rated speed",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "reach_rated_speed",
+      "text": "Speed reaches 3500 +/- 50 RPM within 60 s and holds for 10 s",
+      "type": "reach_band",
+      "passed": true,
+      "measured": "reached at 42.7 s",
+      "limit": "<= 60 s"
+    },
+    {
+      "id": "no_overspeed",
+      "text": "Speed never exceeds the 3850 RPM overspeed trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3500.3",
+      "limit": "< 3850"
+    },
+    {
+      "id": "exhaust_temp_limit",
+      "text": "Exhaust gas temperature stays below the 620 degC trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 256.7",
+      "limit": "< 620"
+    },
+    {
+      "id": "no_trip",
+      "text": "Controller never trips",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3500.34077,
+    "final_speed_rpm": 3499.65146,
+    "peak_exh_gas_c": 256.711264,
+    "peak_exh_tc_c": 225.433369,
+    "peak_fuel_kg_s": 0.382545237,
+    "peak_power_mw": 0.0,
+    "tripped": false,
+    "first_out": "none",
+    "peak_spread_c": 5.483252,
+    "duration_s": 89.95
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/startup_to_rated.json",
+    "scenario sha256 (first 12)": "b5bfdd8834a4",
+    "run at (UTC)": "2026-10-12 17:15:19",
+    "seed": 7,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 9070,
+      "mean": 148.7274,
+      "std": 704.5498,
+      "p50": 103.586,
+      "p99": 596.481,
+      "p999": 6223.945,
+      "max": 36149.84
+    },
+    "plant_step_exec_us": {
+      "n": 9070,
+      "mean": 1.8366,
+      "std": 34.4623,
+      "p50": 1.373,
+      "p99": 2.344,
+      "p999": 18.685,
+      "max": 3277.116
+    },
+    "poll_period_ms": {
+      "n": 1813,
+      "mean": 50.0,
+      "std": 1.6794,
+      "p50": 49.9997,
+      "p99": 51.119,
+      "p999": 71.2901,
+      "max": 85.7772
+    },
+    "response_latency_us": {
+      "n": 5442,
+      "mean": 10.7392,
+      "std": 14.8557,
+      "p50": 9.846,
+      "p99": 22.223,
+      "p999": 96.658,
+      "max": 906.282
+    },
+    "modbus": {
+      "requests": 5442,
+      "input_reads": 1814,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 1815,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 8543,
+    "ctrl_update_us_max": 20,
+    "wake_lateness_us_mean": 129.9,
+    "wake_lateness_us_max": 35569.2
+  },
+  "plant_node_exit": null
+}

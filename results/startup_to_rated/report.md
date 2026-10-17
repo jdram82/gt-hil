@@ -41,8 +41,8 @@ Cold start from rest: crank, purge, light-off, accelerate, starter cut-out, gove
 
 - scenario file: scenarios/startup_to_rated.json
 - scenario sha256 (first 12): b5bfdd8834a4
-- run at (UTC): 2026-10-12 16:28:44
-- git commit: 5faffda
+- run at (UTC): 2026-10-17 15:55:08
+- git commit: f5faab9
 - seed: 7
 - sensor noise: True
 - rated electrical power (MW): 22.72

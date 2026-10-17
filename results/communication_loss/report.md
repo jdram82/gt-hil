@@ -54,9 +54,9 @@ Unit carries 80 % load. A 80 ms link dropout must pass unnoticed; a 300 ms dropo
 ## Run record
 
 - scenario file: scenarios/communication_loss.json
-- scenario sha256 (first 12): 676f0419b2e5
-- run at (UTC): 2026-10-12 16:26:08
-- git commit: 5faffda
+- scenario sha256 (first 12): 778ef631ccb6
+- run at (UTC): 2026-10-17 15:52:05
+- git commit: f5faab9
 - seed: 61
 - sensor noise: True
 - rated electrical power (MW): 22.72

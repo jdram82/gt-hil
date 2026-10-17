@@ -42,8 +42,8 @@ Unit carries 80 % load. Speed channel 1 starts to drift upward at 10 RPM/s (up t
 
 - scenario file: scenarios/speed_sensor_drift.json
 - scenario sha256 (first 12): 8d0ff1babdf4
-- run at (UTC): 2026-10-12 16:28:08
-- git commit: 5faffda
+- run at (UTC): 2026-10-17 15:54:35
+- git commit: f5faab9
 - seed: 31
 - sensor noise: True
 - rated electrical power (MW): 22.72

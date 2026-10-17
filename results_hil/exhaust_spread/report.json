@@ -1,0 +1,136 @@
+{
+  "scenario": "exhaust_spread",
+  "name": "Exhaust temperature spread (combustor fault)",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "alarm",
+      "text": "Spread alarm is raised within 15 s",
+      "type": "bit_set",
+      "passed": true,
+      "measured": "set at 12.0 s",
+      "limit": "between 5 and 20 s"
+    },
+    {
+      "id": "no_early_trip",
+      "text": "No trip while the spread is below 80 degC",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "trips",
+      "text": "Trip once the spread passes 80 degC (12 to 30 s)",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 20.5 s",
+      "limit": "between 12 and 30 s"
+    },
+    {
+      "id": "first_out",
+      "text": "First-out cause is exhaust spread",
+      "type": "final_is",
+      "passed": true,
+      "measured": "exhaust spread",
+      "limit": "exh spread"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero at the end",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 44.0 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "gas_ok",
+      "text": "True gas temperature stays below 620 degC throughout",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 487.9",
+      "limit": "< 620"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3684.63767,
+    "final_speed_rpm": 1277.55612,
+    "peak_exh_gas_c": 487.919958,
+    "peak_exh_tc_c": 487.5717,
+    "peak_fuel_kg_s": 1.25457791,
+    "peak_power_mw": 18.1782711,
+    "tripped": true,
+    "first_out": "exhaust spread",
+    "peak_spread_c": 204.806286,
+    "duration_s": 44.94999999999999
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/exhaust_spread.json",
+    "scenario sha256 (first 12)": "c12d101d9aa9",
+    "run at (UTC)": "2026-10-12 17:16:06",
+    "seed": 41,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 13790,
+      "mean": 136.7179,
+      "std": 945.7262,
+      "p50": 92.337,
+      "p99": 325.23,
+      "p999": 7020.345,
+      "max": 49281.66
+    },
+    "plant_step_exec_us": {
+      "n": 13790,
+      "mean": 1.4542,
+      "std": 2.1894,
+      "p50": 1.34,
+      "p99": 2.369,
+      "p999": 20.694,
+      "max": 138.804
+    },
+    "poll_period_ms": {
+      "n": 2757,
+      "mean": 50.0,
+      "std": 1.5001,
+      "p50": 50.0003,
+      "p99": 51.0238,
+      "p999": 55.9159,
+      "max": 89.9201
+    },
+    "response_latency_us": {
+      "n": 8274,
+      "mean": 10.8697,
+      "std": 18.8177,
+      "p50": 9.483,
+      "p99": 24.89,
+      "p999": 141.192,
+      "max": 1276.25
+    },
+    "modbus": {
+      "requests": 8274,
+      "input_reads": 2758,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 2759,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 9416,
+    "ctrl_update_us_max": 320,
+    "wake_lateness_us_mean": 117.5,
+    "wake_lateness_us_max": 38475.3
+  },
+  "plant_node_exit": null
+}

@@ -1,7 +1,7 @@
 # scenario file: scenarios/temperature_runaway.json
 # scenario sha256 (first 12): 25273b6ed31e
-# run at (UTC): 2026-10-12 16:29:17
-# git commit: 5faffda
+# run at (UTC): 2026-10-17 15:55:53
+# git commit: f5faab9
 # seed: 21
 # sensor noise: True
 # rated electrical power (MW): 22.72

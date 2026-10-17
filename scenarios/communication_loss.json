@@ -159,5 +159,30 @@
       ],
       "text": "With both watchdogs removed the unit keeps running on stale commands through a 5 s loss of control."
     }
-  ]
+  ],
+  "hil": {
+    "note": "On the real rig the plant only sees what the controller managed to write. During a link loss the controller cannot write, so its alarm and trip are invisible to the plant until the link returns (and the comms alarm has already cleared by then).",
+    "skip": {
+      "medium_alarm": "the comms alarm lives only in the controller; it is visible on the STM32 serial log, not at the plant"
+    },
+    "replace": {
+      "ctrl_trip": {
+        "id": "ctrl_trip",
+        "type": "flag_true",
+        "signal": "tripped",
+        "from_s": 30.0,
+        "to_s": 38.0,
+        "text": "The controller's trip is visible at the plant as soon as the link returns (by 38 s)"
+      },
+      "first_out_seen": {
+        "id": "first_out_seen",
+        "type": "value_in_band_at",
+        "signal": "trip_cause",
+        "at_s": 38.0,
+        "lo": 9.5,
+        "hi": 10.5,
+        "text": "The first-out reported after the link returns is communication loss (code 10)"
+      }
+    }
+  }
 }

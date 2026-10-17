@@ -1,0 +1,178 @@
+{
+  "scenario": "communication_loss",
+  "name": "Communication loss (two-way watchdog)",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "short_silent",
+      "text": "An 80 ms dropout raises no alarm",
+      "type": "bit_clear",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "no_trip_short",
+      "text": "Neither short dropout trips the unit",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    },
+    {
+      "id": "plant_wd",
+      "text": "The plant-side watchdog acts within 2 s of the loss",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 30.6 s",
+      "limit": "between 30 and 32 s"
+    },
+    {
+      "id": "ctrl_trip",
+      "text": "The controller's trip is visible at the plant as soon as the link returns (by 38 s)",
+      "type": "flag_true",
+      "passed": true,
+      "measured": "set at 35.0 s",
+      "limit": "between 30 and 38 s"
+    },
+    {
+      "id": "fuel_closed",
+      "text": "Fuel flow is zero 2.5 s after the loss",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 32.5 s",
+      "limit": "0 to 0.01"
+    },
+    {
+      "id": "breaker_open",
+      "text": "Breaker is open 2.5 s after the loss",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 32.5 s",
+      "limit": "0 to 0.5"
+    },
+    {
+      "id": "no_overspeed",
+      "text": "Speed stays below the overspeed trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3684.0",
+      "limit": "< 3850"
+    },
+    {
+      "id": "stays_latched",
+      "text": "Trip is still latched 3 s after the link returned (no auto-reset)",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "1.0 at 38.0 s",
+      "limit": "0.5 to 1.5"
+    },
+    {
+      "id": "cleared_by_reset",
+      "text": "Explicit reset clears the trip",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "0.0 at 45.0 s",
+      "limit": "-0.5 to 0.5"
+    },
+    {
+      "id": "no_restart",
+      "text": "With the start request still held, the unit does not restart (cool-down only)",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "6.0 at 54.0 s",
+      "limit": "5.5 to 6.5"
+    },
+    {
+      "id": "first_out_seen",
+      "text": "The first-out reported after the link returns is communication loss (code 10)",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "10.0 at 38.0 s",
+      "limit": "9.5 to 10.5"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3683.97791,
+    "final_speed_rpm": 1273.51948,
+    "peak_exh_gas_c": 487.935984,
+    "peak_exh_tc_c": 487.590938,
+    "peak_fuel_kg_s": 1.25468104,
+    "peak_power_mw": 18.1787289,
+    "tripped": true,
+    "first_out": "none",
+    "peak_spread_c": 5.46391826,
+    "duration_s": 54.95
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/communication_loss.json",
+    "scenario sha256 (first 12)": "778ef631ccb6",
+    "run at (UTC)": "2026-10-12 17:16:16",
+    "seed": 61,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)",
+    "criteria not checked in HIL": "medium_alarm: the comms alarm lives only in the controller; it is visible on the STM32 serial log, not at the plant",
+    "HIL note": "On the real rig the plant only sees what the controller managed to write. During a link loss the controller cannot write, so its alarm and trip are invisible to the plant until the link returns (and the comms alarm has already cleared by then)."
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 14796,
+      "mean": 130.0582,
+      "std": 852.4247,
+      "p50": 83.547,
+      "p99": 449.957,
+      "p999": 7013.714,
+      "max": 46812.741
+    },
+    "plant_step_exec_us": {
+      "n": 14796,
+      "mean": 1.5703,
+      "std": 11.6821,
+      "p50": 1.243,
+      "p99": 3.116,
+      "p999": 36.387,
+      "max": 961.225
+    },
+    "poll_period_ms": {
+      "n": 2851,
+      "mean": 51.8766,
+      "std": 93.8176,
+      "p50": 49.9993,
+      "p99": 51.5335,
+      "p999": 85.0577,
+      "max": 5050.0614
+    },
+    "response_latency_us": {
+      "n": 8556,
+      "mean": 10.8657,
+      "std": 9.7657,
+      "p50": 9.797,
+      "p99": 30.325,
+      "p999": 100.649,
+      "max": 491.553
+    },
+    "modbus": {
+      "requests": 8663,
+      "input_reads": 2852,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 107
+    }
+  },
+  "controller_node": {
+    "cycles": 2960,
+    "failed_cycles": 107,
+    "timeouts": 107,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 58551,
+    "ctrl_update_us_max": 184,
+    "wake_lateness_us_mean": 142.4,
+    "wake_lateness_us_max": 32289.8
+  },
+  "plant_node_exit": null
+}

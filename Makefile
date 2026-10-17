@@ -14,10 +14,12 @@ LIB_SRC := plant/plant.c plant/sim.c controller/standin_governor.c controller/se
 LIB     := build/libgtsim.so
 TESTBIN := build/test_plant
 TESTCTL := build/test_controller
+TESTMB  := build/test_modbus
+HILFLAGS := -pthread
 
 .PHONY: all unit scenarios test clean
 
-all: $(LIB) $(TESTBIN) $(TESTCTL)
+all: $(LIB) $(TESTBIN) $(TESTCTL) $(TESTMB) build/plant_node build/ctrl_node
 
 build:
 	mkdir -p build
@@ -31,9 +33,19 @@ $(TESTBIN): tests/test_plant.c $(LIB_SRC) plant/plant.h plant/sim.h controller/s
 $(TESTCTL): tests/test_controller.c $(LIB_SRC) plant/plant.h plant/sim.h controller/standin_governor.h controller/sensor_vote.h controller/protection.h include/hil_constants.h include/hil_regs.h | build
 	$(CC) $(CFLAGS) -o $@ tests/test_controller.c $(LIB_SRC) $(LDLIBS)
 
-unit: $(TESTBIN) $(TESTCTL)
+$(TESTMB): tests/test_modbus.c common/modbus_rtu.c common/modbus_rtu.h | build
+	$(CC) $(CFLAGS) -o $@ tests/test_modbus.c common/modbus_rtu.c $(LDLIBS)
+
+build/plant_node: bbb/plant_node.c common/modbus_rtu.c $(LIB_SRC) plant/sim.h common/modbus_rtu.h include/hil_regs.h | build
+	$(CC) $(CFLAGS) $(HILFLAGS) -o $@ bbb/plant_node.c common/modbus_rtu.c $(LIB_SRC) $(LDLIBS)
+
+build/ctrl_node: tools/ctrl_node.c common/hil_master.c common/hil_master.h common/modbus_rtu.c common/modbus_rtu.h controller/standin_governor.c controller/sensor_vote.c controller/protection.c | build
+	$(CC) $(CFLAGS) -o $@ tools/ctrl_node.c common/hil_master.c common/modbus_rtu.c controller/standin_governor.c controller/sensor_vote.c controller/protection.c $(LDLIBS)
+
+unit: $(TESTBIN) $(TESTCTL) $(TESTMB)
 	./$(TESTBIN)
 	./$(TESTCTL)
+	./$(TESTMB)
 
 scenarios: $(LIB)
 	python3 tools/scenario_runner.py scenarios/*.json

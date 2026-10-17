@@ -1,0 +1,128 @@
+{
+  "scenario": "load_rejection",
+  "name": "Load rejection from 50 percent load",
+  "passed": true,
+  "criteria": [
+    {
+      "id": "stable_before",
+      "text": "Speed is within 3450-3550 RPM just before the load is lost",
+      "type": "value_in_band_at",
+      "passed": true,
+      "measured": "3500.1 at 9.5 s",
+      "limit": "3450 to 3550"
+    },
+    {
+      "id": "peak_speed",
+      "text": "Peak speed stays below the 3850 RPM overspeed trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 3650.1",
+      "limit": "< 3850"
+    },
+    {
+      "id": "recovers",
+      "text": "Speed returns to 3450-3550 RPM within 30 s of the load loss and holds for 10 s",
+      "type": "settles_in_band",
+      "passed": true,
+      "measured": "settled 7.4 s after event",
+      "limit": "<= 30 s"
+    },
+    {
+      "id": "exhaust_temp_limit",
+      "text": "Exhaust gas temperature stays below the 620 degC trip level",
+      "type": "max_below",
+      "passed": true,
+      "measured": "peak 377.9",
+      "limit": "< 620"
+    },
+    {
+      "id": "no_trip",
+      "text": "Controller never trips",
+      "type": "flag_false",
+      "passed": true,
+      "measured": "never set",
+      "limit": "never"
+    }
+  ],
+  "metrics": {
+    "peak_speed_rpm": 3650.11224,
+    "final_speed_rpm": 3499.83107,
+    "peak_exh_gas_c": 377.887009,
+    "peak_exh_tc_c": 377.720386,
+    "peak_fuel_kg_s": 0.883803323,
+    "peak_power_mw": 11.3605666,
+    "tripped": false,
+    "first_out": "none",
+    "peak_spread_c": 5.47812164,
+    "duration_s": 59.94999999999999
+  },
+  "run": {
+    "mode": "real-time HIL (software rehearsal: virtual serial, controller on Linux)",
+    "scenario file": "scenarios/load_rejection.json",
+    "scenario sha256 (first 12)": "2c71792718e9",
+    "run at (UTC)": "2026-10-12 17:20:34",
+    "seed": 11,
+    "sensor noise": true,
+    "rated electrical power (MW)": "22.72",
+    "python": "3.13.16",
+    "host": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39",
+    "negative tests": "not run in real time (see the software tier)"
+  },
+  "timing": {
+    "plant_wake_lateness_us": {
+      "n": 15290,
+      "mean": 145.3094,
+      "std": 619.1802,
+      "p50": 116.755,
+      "p99": 358.335,
+      "p999": 2791.488,
+      "max": 43301.309
+    },
+    "plant_step_exec_us": {
+      "n": 15290,
+      "mean": 1.4509,
+      "std": 3.4381,
+      "p50": 1.323,
+      "p99": 2.192,
+      "p999": 16.414,
+      "max": 329.627
+    },
+    "poll_period_ms": {
+      "n": 3057,
+      "mean": 50.0,
+      "std": 1.0522,
+      "p50": 50.0005,
+      "p99": 51.6658,
+      "p999": 54.975,
+      "max": 83.0022
+    },
+    "response_latency_us": {
+      "n": 9174,
+      "mean": 11.2617,
+      "std": 37.3247,
+      "p50": 9.809,
+      "p99": 21.565,
+      "p999": 135.972,
+      "max": 2617.511
+    },
+    "modbus": {
+      "requests": 9174,
+      "input_reads": 3058,
+      "bad_frames": 0,
+      "exceptions": 0,
+      "dropped_link_down": 0
+    }
+  },
+  "controller_node": {
+    "cycles": 3059,
+    "failed_cycles": 0,
+    "timeouts": 0,
+    "crc_errors": 0,
+    "write_failures": 0,
+    "cycle_exec_us_max": 9227,
+    "ctrl_update_us_max": 22,
+    "wake_lateness_us_mean": 148.3,
+    "wake_lateness_us_max": 33155.3
+  },
+  "plant_node_exit": null
+}

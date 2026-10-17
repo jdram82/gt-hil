@@ -19,6 +19,12 @@ struct Sim {
     int    w_starter, w_ignition, w_sync, w_trip;
     double wd_timer;
     int    wd_active;
+
+    /* external-controller mode */
+    int      ext;
+    double   x_fsr;
+    int      x_state, x_first_out;
+    unsigned x_alarm;
 };
 
 Sim *sim_create(void)
@@ -47,6 +53,7 @@ void sim_reset(Sim *s, unsigned long long seed, int noise_enabled)
     s->ctrl_timer = 0.0;
     s->w_fuel = 0.0; s->w_starter = s->w_ignition = s->w_sync = 0; s->w_trip = 0;
     s->wd_timer = 0.0; s->wd_active = 0;
+    s->ext = 0; s->x_fsr = 0.0; s->x_state = 0; s->x_first_out = 0; s->x_alarm = 0;
     plant_measure(&s->plant, &s->meas);
 }
 
@@ -138,7 +145,7 @@ static void plant_side(Sim *s)
 void sim_step(Sim *s)
 {
     s->ctrl_timer += HIL_STEP_S;
-    if (s->ctrl_timer >= HIL_CONTROL_PERIOD_S - 1e-9) {
+    if (!s->ext && s->ctrl_timer >= HIL_CONTROL_PERIOD_S - 1e-9) {
         s->ctrl_timer -= HIL_CONTROL_PERIOD_S;
         controller_cycle(s);
     }
@@ -200,6 +207,22 @@ void sim_get(const Sim *s, SimOut *o)
     o->p_comp_mw       = p->p_comp_w / 1.0e6;
     o->p_turb_mw       = p->p_turb_w / 1.0e6;
     o->p_shaft_net_mw  = p->p_shaft_net_w / 1.0e6;
+
+    if (s->ext) {                      /* controller values come from the other device */
+        double a = s->in.speed_rpm[0], b = s->in.speed_rpm[1], cc = s->in.speed_rpm[2], m;
+        m = (a > b) ? ((b > cc) ? b : (a > cc ? cc : a)) : ((a > cc) ? a : (b > cc ? cc : b));
+        o->speed_voted_rpm = m;
+        o->exh_voted_c     = tc_median4(s->in.tc_c);
+        o->exh_spread_c    = tc_spread4(s->in.tc_c);
+        o->fsr_cmd         = s->x_fsr;
+        o->ctrl_state      = (double)s->x_state;
+        o->tripped         = (s->x_state == CS_TRIP) ? 1.0 : 0.0;
+        o->trip_cause      = (double)s->x_first_out;
+        o->alarm_word      = (double)s->x_alarm;
+        o->sync_permit     = (double)s->w_sync;
+        o->fsr_gov = o->fsr_acc = o->fsr_temp = o->fsr_start = 0.0;
+        o->selected = o->perm_word = o->sensor_bad_word = o->missed_polls = 0.0;
+    }
 }
 
 StandinCtrl *sim_ctrl(Sim *s)  { return &s->ctrl; }
@@ -207,3 +230,27 @@ Plant       *sim_plant(Sim *s) { return &s->plant; }
 
 void sim_set_temp_tuning(Sim *s, double kp, double ki, double hr)
 { s->ctrl.kp_t = kp; s->ctrl.ki_t = ki; s->ctrl.temp_headroom = hr; }
+
+/* ---------------- external-controller mode ---------------- */
+void sim_ext_enable(Sim *s) { s->ext = 1; }
+
+void sim_ext_sample(Sim *s, PlantMeasurements *m)
+{
+    plant_measure(&s->plant, &s->meas);
+    *m = s->meas;
+    for (int i = 0; i < 3; i++) s->in.speed_rpm[i] = s->meas.speed_rpm[i];
+    for (int i = 0; i < 4; i++) s->in.tc_c[i]      = s->meas.tc_c[i];
+}
+
+void sim_ext_write(Sim *s, double fsr, unsigned do_word, int state, int first_out, unsigned alarm)
+{
+    s->w_fuel     = fsr;
+    s->w_starter  = (do_word & HIL_DO_STARTER) ? 1 : 0;
+    s->w_ignition = (do_word & HIL_DO_IGNITION) ? 1 : 0;
+    s->w_sync     = (do_word & HIL_DO_SYNC_PERMIT) ? 1 : 0;
+    s->w_trip     = (do_word & HIL_DO_TRIP_OK) ? 0 : 1;      /* de-energise to trip */
+    s->wd_timer   = 0.0;
+    s->x_fsr = fsr; s->x_state = state; s->x_first_out = first_out; s->x_alarm = alarm;
+}
+
+int sim_ext_watchdog_active(const Sim *s) { return s->wd_active; }
